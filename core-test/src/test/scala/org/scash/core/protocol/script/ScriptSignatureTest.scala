@@ -93,7 +93,6 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
     scriptSig.hex must be(TestUtil.p2pkScriptSig.hex)
   }
 
-
   it must "read sighash.json and return result" in {
     import org.scash.core.protocol.script.testprotocol.SignatureHashTestCaseProtocol._
     //["raw_transaction, script, input_index, hashType, signature_hash (result)"],
@@ -112,9 +111,14 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
     val testCases: Seq[SignatureHashTestCase] = lines.parseJson.convertTo[Seq[SignatureHashTestCase]]
 
     for {
-      testCase <- testCases
+      testCaseI <- testCases.zipWithIndex
     } yield {
-      logger.info("testCase: " + testCase)
+      val (testCase, idx) = testCaseI
+      logger.info(s"hashtype idx:$idx  ${testCase.hashType}")
+      logger.info(s"hashtypeNum idx:$idx  ${testCase.hashTypeNum}")
+      logger.info(s"regularHash idx:$idx  ${testCase.regularSigHash.hex}")
+      logger.info(s"noForkKidSigHash idx:$idx  ${testCase.noForkKidSigHash.hex}")
+      logger.info(s"replayProtectedSigHash idx:$idx  ${testCase.replayProtectedSigHash.hex}")
       Transaction(testCase.transaction.hex) must be(testCase.transaction)
       val output = TransactionOutput(CurrencyUnits.zero, testCase.script)
       val txSigComponent = BaseTxSigComponent(
@@ -124,7 +128,7 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
         Policy.standardFlags)
 
       val hashForSig = TransactionSignatureSerializer.hashForSignature(txSigComponent, testCase.hashType)
-      val flipHash = BitcoinSUtil.flipEndianness(testCase.hash.hex)
+      val flipHash = BitcoinSUtil.flipEndianness(testCase.noForkKidSigHash.hex)
       hashForSig must be(DoubleSha256Digest(flipHash))
     }
   }

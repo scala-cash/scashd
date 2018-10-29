@@ -16,8 +16,17 @@ trait SignatureHashTestCase {
   def inputIndex: UInt32
   def hashTypeNum: Int32
   def hashType: HashType
-  def hash: DoubleSha256Digest
+  def regularSigHash: DoubleSha256Digest
+  def noForkKidSigHash: DoubleSha256Digest
+  def replayProtectedSigHash: DoubleSha256Digest
 }
 
-case class SignatureHashTestCaseImpl(transaction: Transaction, script: ScriptPubKey, inputIndex: UInt32, hashTypeNum: Int32, hashType: HashType,
-  hash: DoubleSha256Digest) extends SignatureHashTestCase
+case class SignatureHashTestCaseImpl(
+  transaction: Transaction,
+  script: ScriptPubKey,
+  inputIndex: UInt32,
+  hashTypeNum: Int32,
+  hashType: HashType,
+  regularSigHash: DoubleSha256Digest,
+  noForkKidSigHash: DoubleSha256Digest,
+  replayProtectedSigHash: DoubleSha256Digest) extends SignatureHashTestCase

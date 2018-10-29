@@ -6,14 +6,12 @@ import org.scash.core.protocol.script.ScriptPubKey
 import org.scash.core.protocol.transaction.Transaction
 import org.scash.core.script.crypto.HashType
 import org.scash.core.serializers.script.ScriptParser
-import org.slf4j.LoggerFactory
 import spray.json._
 
 /**
  * Created by tom on 7/21/16.
  */
 object SignatureHashTestCaseProtocol extends DefaultJsonProtocol {
-  private val logger = LoggerFactory.getLogger(this.getClass.getSimpleName)
   implicit object SignatureTestCaseProtocol extends RootJsonFormat[SignatureHashTestCase] {
     override def read(value: JsValue): SignatureHashTestCase = {
       val jsArray: JsArray = value match {
@@ -27,9 +25,21 @@ object SignatureHashTestCaseProtocol extends DefaultJsonProtocol {
       val inputIndex: UInt32 = UInt32(elements(2).convertTo[Int])
       val hashTypeNum: Int32 = Int32(elements(3).convertTo[Int])
       val hashType: HashType = HashType(hashTypeNum)
-      val hash: DoubleSha256Digest = DoubleSha256Digest(elements.last.convertTo[String])
-      SignatureHashTestCaseImpl(transaction, script, inputIndex, hashTypeNum, hashType, hash)
+      val regularSigHash = DoubleSha256Digest(elements(4).convertTo[String])
+      val noForkKidSigHash = DoubleSha256Digest(elements(5).convertTo[String])
+      val replayProtectedSigHash = DoubleSha256Digest(elements(6).convertTo[String])
+
+      SignatureHashTestCaseImpl(
+        transaction,
+        script,
+        inputIndex,
+        hashTypeNum,
+        hashType,
+        regularSigHash,
+        noForkKidSigHash,
+        replayProtectedSigHash)
     }
+
     override def write(testCase: SignatureHashTestCase): JsValue = ???
   }
 }

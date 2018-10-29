@@ -9,9 +9,8 @@ import scala.math.BigInt
  * Created by chris on 2/26/16.
  */
 trait BitcoinSUtil {
-  private val logger = BitcoinSLogger.logger
   def decodeHex(hex: String): ByteVector = {
-    if (hex.isEmpty) ByteVector.empty else ByteVector.fromHex(hex).get
+    if (hex.isEmpty) ByteVector.empty else ByteVector.fromValidHex(hex)
   }
 
   def encodeHex(bytes: ByteVector): String = bytes.toHex
