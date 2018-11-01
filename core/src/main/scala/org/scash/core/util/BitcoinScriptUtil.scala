@@ -226,27 +226,20 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
 
   /**
    * Returns true if the key is compressed or uncompressed, false otherwise
-   * https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L66
+   * [[https://github.com/Bitcoin-ABC/bitcoin-abc/blob/058a6c027b5d4749b4fa23a0ac918e5fc04320e8/src/script/sigencoding.cpp#L217]]
    * @param key the public key that is being checked
    * @return true if the key is compressed/uncompressed otherwise false
    */
-  def isCompressedOrUncompressedPubKey(key: ECPublicKey): Boolean = {
-    if (key.bytes.size < 33) {
-      //  Non-canonical public key: too short
-      return false
-    }
-    if (key.bytes.head == 0x04) {
-      if (key.bytes.size != 65) {
-        //  Non-canonical public key: invalid length for uncompressed key
-        return false
-      }
-    } else if (isCompressedPubKey(key)) {
-      return true
-    } else {
-      //  Non-canonical public key: neither compressed nor uncompressed
-      return false
-    }
-    true
+  def isCompressedOrUncompressedPubKey(key: ECPublicKey): Boolean = key.bytes.size match {
+    case 33 =>
+      // Compressed public key: must start with 0x02 or 0x03.
+      key.bytes.get(0) == 0x02 || key.bytes.get(0) == 0x03
+    case 65 =>
+      //Non-compressed public key must start with 0x04
+      key.bytes.get(0) == 0x04
+    case _ =>
+      // Non canonical public keys are invalid
+      false
   }
 
   /** Checks if the given public key is a compressed public key */
@@ -260,11 +253,11 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
   }
 
   /**
-   * Determines if the given pubkey is valid in accordance to the given [[ScriptFlag]]s
-   * and [[SignatureVersion]]. Mimics this function inside of Bitcoin Core
+   * Determines if the given pubkey is valid in accordance to the given [[ScriptFlag]].
+   * Mimics this function inside of Bitcoin Core
    * [[https://github.com/bitcoin/bitcoin/blob/528472111b4965b1a99c4bcf08ac5ec93d87f10f/src/script/interpreter.cpp#L214-L223]]
    */
-  def isValidPubKeyEncoding(pubKey: ECPublicKey, sigVersion: SignatureVersion, flags: Seq[ScriptFlag]): Option[ScriptError] = {
+  def isValidPubKeyEncoding(pubKey: ECPublicKey, flags: Seq[ScriptFlag]): Option[ScriptError] = {
     if (ScriptFlagUtil.requireStrictEncoding(flags) &&
       !BitcoinScriptUtil.isCompressedOrUncompressedPubKey(pubKey)) {
       Some(ScriptErrorPubKeyType)

@@ -56,7 +56,7 @@ sealed abstract class P2PKSigner extends BitcoinSigner {
       val flags = Policy.standardFlags
       val signed: Future[TxSigComponent] = spk match {
         case _: P2PKScriptPubKey =>
-          val sigComponent = BaseTxSigComponent(unsignedTx, inputIndex, output, flags)
+          val sigComponent = TxSigComponent(unsignedTx, inputIndex, output, flags)
           val signature = doSign(sigComponent, sign, hashType, isDummySignature)
           signature.map { sig =>
             val p2pkScriptSig = P2PKScriptSignature(sig)
@@ -67,12 +67,12 @@ sealed abstract class P2PKSigner extends BitcoinSigner {
               signedInputs,
               unsignedTx.outputs,
               unsignedTx.lockTime)
-            BaseTxSigComponent(signedTx, inputIndex, output, flags)
+            TxSigComponent(signedTx, inputIndex, output, flags)
           }
         case lock: LockTimeScriptPubKey =>
           lock.nestedScriptPubKey match {
             case _: P2PKScriptPubKey =>
-              val sigComponent = BaseTxSigComponent(unsignedTx, inputIndex, output, flags)
+              val sigComponent = TxSigComponent(unsignedTx, inputIndex, output, flags)
               val signature = doSign(sigComponent, sign, hashType, isDummySignature)
               signature.map { sig =>
                 val p2pkScriptSig = P2PKScriptSignature(sig)
@@ -84,7 +84,7 @@ sealed abstract class P2PKSigner extends BitcoinSigner {
                   unsignedTx.outputs,
                   unsignedTx.lockTime)
 
-                BaseTxSigComponent(signedTx, inputIndex, output, flags)
+                TxSigComponent(signedTx, inputIndex, output, flags)
               }
 
             case _: P2PKHScriptPubKey | _: MultiSignatureScriptPubKey | _: P2SHScriptPubKey
@@ -122,7 +122,7 @@ sealed abstract class P2PKHSigner extends BitcoinSigner {
           if (p2pkh != P2PKHScriptPubKey(pubKey)) {
             Future.fromTry(TxBuilderError.WrongPublicKey)
           } else {
-            val sigComponent = BaseTxSigComponent(unsignedTx, inputIndex, output, flags)
+            val sigComponent = TxSigComponent(unsignedTx, inputIndex, output, flags)
             val signature = doSign(sigComponent, sign, hashType, isDummySignature)
             signature.map { sig =>
               val p2pkhScriptSig = P2PKHScriptSignature(sig, pubKey)
@@ -134,7 +134,7 @@ sealed abstract class P2PKHSigner extends BitcoinSigner {
                 unsignedTx.outputs,
                 unsignedTx.lockTime)
 
-              BaseTxSigComponent(signedTx, inputIndex, output, flags)
+              TxSigComponent(signedTx, inputIndex, output, flags)
             }
           }
         case lock: LockTimeScriptPubKey =>
@@ -143,7 +143,7 @@ sealed abstract class P2PKHSigner extends BitcoinSigner {
               if (p2pkh != P2PKHScriptPubKey(pubKey)) {
                 Future.fromTry(TxBuilderError.WrongPublicKey)
               } else {
-                val sigComponent = BaseTxSigComponent(unsignedTx, inputIndex, output, flags)
+                val sigComponent = TxSigComponent(unsignedTx, inputIndex, output, flags)
                 val signature = doSign(sigComponent, sign, hashType, isDummySignature)
                 signature.map { sig =>
                   val p2pkhScriptSig = P2PKHScriptSignature(sig, pubKey)
@@ -155,7 +155,7 @@ sealed abstract class P2PKHSigner extends BitcoinSigner {
                     unsignedTx.outputs,
                     unsignedTx.lockTime)
 
-                  BaseTxSigComponent(signedTx, inputIndex, output, flags)
+                  TxSigComponent(signedTx, inputIndex, output, flags)
                 }
               }
             case _: P2PKScriptPubKey | _: MultiSignatureScriptPubKey | _: P2SHScriptPubKey
@@ -190,7 +190,7 @@ sealed abstract class MultiSigSigner extends BitcoinSigner {
         if (signers.size < requiredSigs) {
           Future.fromTry(TxBuilderError.WrongSigner)
         } else {
-          val sigComponent = BaseTxSigComponent(unsignedTx, inputIndex, output, flags)
+          val sigComponent = TxSigComponent(unsignedTx, inputIndex, output, flags)
           val signaturesNested = 0.until(requiredSigs).map(i => doSign(sigComponent, signers(i), hashType, isDummySignature))
           val signatures = Future.sequence(signaturesNested)
           signatures.map { sigs =>
@@ -203,7 +203,7 @@ sealed abstract class MultiSigSigner extends BitcoinSigner {
               unsignedTx.outputs,
               unsignedTx.lockTime)
 
-            BaseTxSigComponent(signedTx, inputIndex, output, Policy.standardFlags)
+            TxSigComponent(signedTx, inputIndex, output, Policy.standardFlags)
           }
         }
       case lock: LockTimeScriptPubKey =>
@@ -217,7 +217,7 @@ sealed abstract class MultiSigSigner extends BitcoinSigner {
         }
         multiSigSPK.flatMap { mSPK =>
           val requiredSigs = mSPK.requiredSigs
-          val sigComponent = BaseTxSigComponent(unsignedTx, inputIndex, output, flags)
+          val sigComponent = TxSigComponent(unsignedTx, inputIndex, output, flags)
           val signatures: Future[Seq[ECDigitalSignature]] = if (signers.size < requiredSigs) {
             Future.fromTry(TxBuilderError.WrongSigner)
           } else {
@@ -236,7 +236,7 @@ sealed abstract class MultiSigSigner extends BitcoinSigner {
               unsignedTx.outputs,
               unsignedTx.lockTime)
 
-            BaseTxSigComponent(signedTx, inputIndex, output, flags)
+            TxSigComponent(signedTx, inputIndex, output, flags)
           }
           signedTxSigComp
         }

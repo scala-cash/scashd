@@ -1,9 +1,8 @@
 package org.scash.core.script
 
-import org.scash.core.crypto.BaseTxSigComponent
+import org.scash.core.crypto.TxSigComponent
 import org.scash.core.currency.CurrencyUnits
 import org.scash.core.number.UInt32
-import org.scash.core.protocol.script.SigVersionBase
 import org.scash.core.protocol.transaction.TransactionOutput
 import org.scash.core.script.constant.{ OP_0, OP_1 }
 import org.scash.core.script.flag.ScriptFlagFactory
@@ -53,7 +52,7 @@ class ScriptProgramFactoryTest extends FlatSpec with MustMatchers {
   it must "update the script program to the given stack and script" in {
     val stack = List(OP_0)
     val script = List(OP_1)
-    val t = BaseTxSigComponent(
+    val t = TxSigComponent(
       transaction = TestUtil.transaction,
       inputIndex = UInt32.zero,
       output = TransactionOutput(CurrencyUnits.zero, TestUtil.scriptPubKey),

@@ -1,36 +1,55 @@
 package org.scash.core.policy
 
+/*
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
+
 import org.scash.core.script.flag._
 import org.scash.core.currency.{ CurrencyUnit, CurrencyUnits, Satoshis }
 import org.scash.core.number.Int64
 
 /**
- * Created by chris on 4/6/16.
- * Mimics the policy files found in bitcoin core
- * https://github.com/bitcoin/bitcoin/blob/master/src/policy/policy.h
+ * Mimics the policy files found in bitcoin cash
+ * https://github.com/Bitcoin-ABC/bitcoin-abc/blob/master/src/policy/policy.h
  */
 sealed abstract class Policy {
 
   /**
    * Mandatory script verification flags that all new blocks must comply with for
-   * them to be valid. (but old blocks may not comply with) Currently just P2SH,
-   * but in the future other flags may be added, such as a soft-fork to enforce
-   * strict DER encoding.
+   * them to be valid. (but old blocks may not comply with)
    *
    * Failing one of these tests may trigger a DoS ban - see CheckInputs() for
    * details.
    */
-  def mandatoryScriptVerifyFlags: Seq[ScriptFlag] = Seq(ScriptVerifyP2SH)
+  def mandatoryScriptVerifyFlags: Seq[ScriptFlag] = Seq(
+    ScriptVerifyP2SH,
+    ScriptVerifyStrictEnc,
+    ScriptEnableSigHashForkId,
+    ScriptVerifyLowS,
+    ScriptVerifyNullFail)
 
   /**
    * The default script verify flags used to validate the blockchain
    * and bitcoin transactions
    */
-  def standardScriptVerifyFlags: Seq[ScriptFlag] = mandatoryScriptVerifyFlags ++ Seq(ScriptVerifyDerSig, ScriptVerifyStrictEnc,
-    ScriptVerifyMinimalData, ScriptVerifyDiscourageUpgradableNOPs,
-    ScriptVerifyCleanStack, ScriptVerifyCheckLocktimeVerify, ScriptVerifyCheckSequenceVerify,
-    ScriptVerifyLowS, ScriptVerifyMinimalIf, ScriptVerifyNullFail,
-    ScriptVerifyNullDummy)
+  def standardScriptVerifyFlags: Seq[ScriptFlag] = mandatoryScriptVerifyFlags ++ Seq(
+    ScriptVerifyDerSig,
+    ScriptVerifyLowS,
+    ScriptVerifyNullDummy,
+    ScriptVerifySigPushOnly,
+    ScriptVerifyMinimalData,
+    ScriptVerifyDiscourageUpgradableNOPs,
+    ScriptVerifyCleanStack,
+    ScriptVerifyCheckLocktimeVerify,
+    ScriptVerifyCheckSequenceVerify,
+    ScriptVerifyNullFail)
+
+  /**
+   * For convenience, standard but not mandatory verify flags.
+   */
+  def standardNonMandatoryVerifyFlags = standardScriptVerifyFlags
+    .filterNot(mandatoryScriptVerifyFlags.contains)
 
   def standardFlags = standardScriptVerifyFlags
 

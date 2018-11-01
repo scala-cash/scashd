@@ -1,6 +1,6 @@
 package org.scash.core.script.interpreter
 
-import org.scash.core.crypto.BaseTxSigComponent
+import org.scash.core.crypto.TxSigComponent
 import org.scash.core.currency.CurrencyUnits
 import org.scash.core.protocol.script._
 import org.scash.core.protocol.transaction.{ Transaction, TransactionOutput }

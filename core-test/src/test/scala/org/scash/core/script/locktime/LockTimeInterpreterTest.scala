@@ -1,6 +1,6 @@
 package org.scash.core.script.locktime
 
-import org.scash.core.crypto.{ BaseTxSigComponent, TxSigComponent }
+import org.scash.core.crypto.TxSigComponent
 import org.scash.core.currency.CurrencyUnits
 import org.scash.core.number.UInt32
 import org.scash.core.protocol.transaction._
@@ -39,7 +39,7 @@ class LockTimeInterpreterTest extends FlatSpec with MustMatchers {
     val emptyTx = EmptyTransaction
     val txAdjustedSequenceNumber = BaseTransaction(emptyTx.version, Seq(txInputAdjustedSequenceNumber), emptyTx.outputs, emptyTx.lockTime)
     val adjustedLockTimeTx = BaseTransaction(txAdjustedSequenceNumber.version, txAdjustedSequenceNumber.inputs, txAdjustedSequenceNumber.outputs, UInt32.zero)
-    val t = BaseTxSigComponent(
+    val t = TxSigComponent(
       transaction = adjustedLockTimeTx,
       inputIndex = TestUtil.testProgram.txSignatureComponent.inputIndex,
       output = TransactionOutput(CurrencyUnits.zero, TestUtil.testProgram.txSignatureComponent.scriptPubKey),
@@ -173,7 +173,7 @@ class LockTimeInterpreterTest extends FlatSpec with MustMatchers {
   }
 
   private def buildTxSigComponent(adjustedLockTimeTx: BaseTransaction): TxSigComponent = {
-    val t = BaseTxSigComponent(
+    val t = TxSigComponent(
       transaction = adjustedLockTimeTx,
       inputIndex = TestUtil.testProgram.txSignatureComponent.inputIndex,
       output = TransactionOutput(CurrencyUnits.zero, TestUtil.testProgram.txSignatureComponent.scriptPubKey),

@@ -11,6 +11,13 @@ import scodec.bits.ByteVector
 sealed trait HashType {
   def num: Int32
   def byte: Byte = num.bytes.last
+
+  /**
+   * Bitcoin Cash forkId = 0. This is a mechanism for forking and enabling replay protection
+   * For example Bitcoin Gold uses this mechanism and it uses forkId = 79
+   * for more information [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/replay-protected-sighash.md]]
+   */
+  def forkId: Int32 = Int32.zero
 }
 
 object HashType extends Factory[HashType] {
@@ -55,6 +62,8 @@ object HashType extends Factory[HashType] {
   def isSigHashNone(num: Int32): Boolean = (num & Int32(0x1f)) == Int32(2)
 
   def isSigHashSingle(num: Int32): Boolean = (num & Int32(0x1f)) == Int32(3)
+
+  def isSigHashForkId(num: Int32): Boolean = (num & Int32(0x40)) == Int32(0x40)
 
   def isSigHashAnyoneCanPay(num: Int32): Boolean = (num & Int32(0x80)) == Int32(0x80)
 
@@ -122,6 +131,8 @@ object HashType extends Factory[HashType] {
    * because all native scala numbers are signed
    */
   val sigHashAnyoneCanPayNum = Int32(0x80)
+
+  val sigHashForkid = 0x40.toByte
 
   val sigHashAnyoneCanPayByte = 0x80.toByte
 

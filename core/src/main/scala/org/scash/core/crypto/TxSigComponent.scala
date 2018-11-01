@@ -4,7 +4,7 @@ import org.scash.core.protocol.transaction._
 import org.scash.core.script.flag.ScriptFlag
 import org.scash.core.currency.CurrencyUnit
 import org.scash.core.number.UInt32
-import org.scash.core.protocol.script.{ ScriptPubKey, ScriptSignature, SigVersionBase, SignatureVersion }
+import org.scash.core.protocol.script.{ ScriptPubKey, ScriptSignature }
 
 /**
  * Created by chris on 4/6/16.
@@ -34,27 +34,20 @@ sealed abstract class TxSigComponent {
 
   /** The flags that are needed to verify if the signature is correct */
   def flags: Seq[ScriptFlag]
-
-  /** Represents the serialization algorithm used to verify/create signatures for Bitcoin */
-  def sigVersion: SignatureVersion
 }
 
-/**
- * The [[TxSigComponent]] used to evaluate the the original Satoshi transaction digest algorithm.
- * Basically this is every spk EXCEPT in the case of a P2SH(witness script) [[ScriptPubKey]]
- */
-sealed abstract class BaseTxSigComponent extends TxSigComponent {
-  override def sigVersion = SigVersionBase
-}
+object TxSigComponent {
 
-object BaseTxSigComponent {
+  private case class TxSigComponentImpl(
+    transaction: Transaction,
+    inputIndex: UInt32,
+    output: TransactionOutput,
+    flags: Seq[ScriptFlag]) extends TxSigComponent
 
-  private case class BaseTxSigComponentImpl(transaction: Transaction, inputIndex: UInt32,
-    output: TransactionOutput, flags: Seq[ScriptFlag]) extends BaseTxSigComponent
-
-  def apply(transaction: Transaction, inputIndex: UInt32,
-    output: TransactionOutput, flags: Seq[ScriptFlag]): BaseTxSigComponent = {
-    BaseTxSigComponentImpl(transaction, inputIndex, output, flags)
-  }
+  def apply(
+    transaction: Transaction,
+    inputIndex: UInt32,
+    output: TransactionOutput,
+    flags: Seq[ScriptFlag]): TxSigComponent = TxSigComponentImpl(transaction, inputIndex, output, flags)
 
 }

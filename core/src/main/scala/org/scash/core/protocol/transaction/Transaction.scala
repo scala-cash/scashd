@@ -40,14 +40,6 @@ sealed abstract class Transaction extends NetworkElement {
   /** The locktime for this transaction */
   def lockTime: UInt32
 
-  /**
-   * Base transaction size is the size of the transaction serialised with the witness data stripped
-   * [[https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#Transaction_size_calculations]]
-   */
-  def baseSize: Long = size
-
-  def totalSize: Long = bytes.size
-
   /** Determines if this transaction is a coinbase transaction. */
   def isCoinbase: Boolean = inputs.size match {
     case 1 => inputs.head match {

@@ -383,7 +383,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
     val (unsignedSpendingTx, inputIndex) = TransactionGenerators.buildSpendingTransaction(tc.validLockVersion, creditingTx,
       EmptyScriptSignature, outputIndex, lockTime.getOrElse(tc.lockTime), sequence)
     val output = TransactionOutput(CurrencyUnits.zero, lock)
-    val txSignatureComponent = BaseTxSigComponent(unsignedSpendingTx, inputIndex,
+    val txSignatureComponent = TxSigComponent(unsignedSpendingTx, inputIndex,
       output, Policy.standardScriptVerifyFlags)
 
     val txSignatures: Seq[ECDigitalSignature] = for {
@@ -417,7 +417,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
       }
     }
     val output = TransactionOutput(CurrencyUnits.zero, csvEscrowTimeout)
-    val txSignatureComponent = BaseTxSigComponent(unsignedSpendingTx, inputIndex,
+    val txSignatureComponent = TxSigComponent(unsignedSpendingTx, inputIndex,
       output, Policy.standardScriptVerifyFlags)
 
     val txSignatures: Seq[ECDigitalSignature] = for {

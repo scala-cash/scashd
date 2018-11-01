@@ -62,7 +62,9 @@ sealed abstract class Number[T <: Number[T]] extends NetworkElement {
 
   def |(num: T): T = apply(checkResult(underlying | num.underlying))
   def &(num: T): T = apply(checkResult(underlying & num.underlying))
+  def ^(num: T): T = apply(checkResult(underlying ^ num.underlying))
   def unary_- : T = apply(-underlying)
+
   private def checkResult(result: BigInt): A = {
     require((result & andMask) == result, "Result was out of bounds, got: " + result)
     result

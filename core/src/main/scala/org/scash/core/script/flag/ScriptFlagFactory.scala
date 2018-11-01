@@ -8,14 +8,15 @@ package org.scash.core.script.flag
 trait ScriptFlagFactory {
 
   /**
-   * All the [[ScriptFlag]]s found inside of bitcoin core
-   * https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.h#L31.
+   * All the [[ScriptFlag]]s found inside of bitcoin cash
+   * https://github.com/Bitcoin-ABC/bitcoin-abc/blob/master/src/script/script_flags.h
    */
   private def flags = Seq(ScriptVerifyNone, ScriptVerifyP2SH, ScriptVerifyStrictEnc,
     ScriptVerifyDerSig, ScriptVerifyLowS, ScriptVerifySigPushOnly, ScriptVerifyMinimalData,
     ScriptVerifyNullDummy, ScriptVerifyDiscourageUpgradableNOPs, ScriptVerifyCleanStack,
     ScriptVerifyCheckLocktimeVerify, ScriptVerifyCheckSequenceVerify,
-    ScriptVerifyMinimalIf, ScriptVerifyNullFail)
+    ScriptVerifyMinimalIf, ScriptVerifyNullFail, ScriptVerifyCompressedPubkeytype,
+    ScriptEnableSigHashForkId, ScriptEnableReplayProtection)
 
   /** Takes in a string and tries to match it with a [[ScriptFlag]]. */
   def fromString(str: String): Option[ScriptFlag] = {

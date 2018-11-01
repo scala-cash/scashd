@@ -1,15 +1,15 @@
 package org.scash.core.script.crypto
 
-import org.scash.core.crypto.BaseTxSigComponent
+import org.scash.core.crypto.TxSigComponent
 import org.scash.core.currency.CurrencyUnits
 import org.scash.core.number.UInt32
-import org.scash.core.protocol.script.{ P2SHScriptSignature, ScriptPubKey, ScriptSignature, SigVersionBase }
+import org.scash.core.protocol.script.{ ScriptSignature }
 import org.scash.core.protocol.transaction._
 import org.scash.core.script._
 import org.scash.core.script.constant._
 import org.scash.core.script.flag.{ ScriptFlagFactory, ScriptVerifyDerSig, ScriptVerifyNullDummy }
 import org.scash.core.script.result._
-import org.scash.core.util.{ BitcoinSLogger, ScriptProgramTestUtil, TestUtil, TransactionTestUtil }
+import org.scash.core.util.{ BitcoinSLogger, ScriptProgramTestUtil, TestUtil }
 import org.scalatest.{ FlatSpec, MustMatchers }
 
 /**
@@ -142,7 +142,7 @@ class CryptoInterpreterTest extends FlatSpec with MustMatchers {
     val input = TransactionInput(EmptyTransactionOutPoint, scriptSig, TransactionConstants.sequence)
     val empty = EmptyTransaction
     val tx = BaseTransaction(empty.version, Seq(input), empty.outputs, empty.lockTime)
-    val t = BaseTxSigComponent(
+    val t = TxSigComponent(
       transaction = tx,
       inputIndex = UInt32.zero,
       output = TransactionOutput(CurrencyUnits.zero, TestUtil.scriptPubKey),

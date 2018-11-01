@@ -1,6 +1,6 @@
 package org.scash.core.protocol.transaction
 
-import org.scash.core.crypto.BaseTxSigComponent
+import org.scash.core.crypto.TxSigComponent
 import org.scash.core.currency.CurrencyUnits
 import org.scash.core.number.UInt32
 import org.scash.core.protocol.script._
@@ -90,7 +90,7 @@ class TransactionTest extends FlatSpec with MustMatchers {
       val txSigComponent = amountOpt match {
         case Some(amount) => scriptPubKey match {
           case p2sh: P2SHScriptPubKey =>
-            BaseTxSigComponent(
+            TxSigComponent(
               transaction = tx,
               inputIndex = UInt32(inputIndex),
               output = TransactionOutput(amount, p2sh),
@@ -98,10 +98,10 @@ class TransactionTest extends FlatSpec with MustMatchers {
           case x @ (_: P2PKScriptPubKey | _: P2PKHScriptPubKey | _: MultiSignatureScriptPubKey | _: CLTVScriptPubKey | _: CSVScriptPubKey
             | _: CLTVScriptPubKey | _: EscrowTimeoutScriptPubKey | _: NonStandardScriptPubKey | EmptyScriptPubKey) =>
             val output = TransactionOutput(amount, x)
-            BaseTxSigComponent(tx, UInt32(inputIndex), output, testCase.flags)
+            TxSigComponent(tx, UInt32(inputIndex), output, testCase.flags)
         }
         case None =>
-          BaseTxSigComponent(
+          TxSigComponent(
             transaction = tx,
             inputIndex = UInt32(inputIndex),
             output = TransactionOutput(CurrencyUnits.zero, scriptPubKey),
@@ -139,21 +139,21 @@ class TransactionTest extends FlatSpec with MustMatchers {
           val txSigComponent = amountOpt match {
             case Some(amount) => scriptPubKey match {
               case p2sh: P2SHScriptPubKey =>
-                BaseTxSigComponent(
+                TxSigComponent(
                   transaction = tx,
                   inputIndex = UInt32(inputIndex),
                   output = TransactionOutput(amount, scriptPubKey),
                   flags = testCase.flags)
               case x @ (_: P2PKScriptPubKey | _: P2PKHScriptPubKey | _: MultiSignatureScriptPubKey | _: CLTVScriptPubKey | _: CSVScriptPubKey
                 | _: CLTVScriptPubKey | _: EscrowTimeoutScriptPubKey | _: NonStandardScriptPubKey | EmptyScriptPubKey) =>
-                BaseTxSigComponent(
+                TxSigComponent(
                   transaction = tx,
                   inputIndex = UInt32(inputIndex),
                   output = TransactionOutput(amount, x),
                   flags = testCase.flags)
             }
             case None =>
-              BaseTxSigComponent(
+              TxSigComponent(
                 transaction = tx,
                 inputIndex = UInt32(inputIndex),
                 output = TransactionOutput(CurrencyUnits.zero, scriptPubKey),

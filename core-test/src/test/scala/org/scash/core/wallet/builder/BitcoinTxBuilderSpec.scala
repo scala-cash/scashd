@@ -1,6 +1,6 @@
 package org.scash.core.wallet.builder
 
-import org.scash.core.crypto.BaseTxSigComponent
+import org.scash.core.crypto.TxSigComponent
 import org.scash.core.currency.{ CurrencyUnits, Satoshis }
 import org.scash.core.gen.{ ChainParamsGenerator, CreditingTxGen, ScriptGenerators, TransactionGenerators }
 import org.scash.core.number.{ Int64, UInt32 }
@@ -103,10 +103,10 @@ class BitcoinTxBuilderSpec extends Properties("TxBuilderSpec") {
             | _: CSVScriptPubKey | _: CLTVScriptPubKey | _: NonStandardScriptPubKey | _: EscrowTimeoutScriptPubKey
             | EmptyScriptPubKey) =>
             val o = TransactionOutput(CurrencyUnits.zero, x)
-            BaseTxSigComponent(tx, UInt32(idx), o, Policy.standardFlags)
+            TxSigComponent(tx, UInt32(idx), o, Policy.standardFlags)
           case p2sh: P2SHScriptPubKey =>
             val o = TransactionOutput(CurrencyUnits.zero, p2sh)
-            BaseTxSigComponent(tx, UInt32(idx), o, Policy.standardFlags)
+            TxSigComponent(tx, UInt32(idx), o, Policy.standardFlags)
         }
         PreExecutionScriptProgram(txSigComponent)
     }

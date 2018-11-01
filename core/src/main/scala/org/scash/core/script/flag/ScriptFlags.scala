@@ -3,14 +3,14 @@ package org.scash.core.script.flag
 /**
  * Created by chris on 3/23/16.
  * This represents all of the script flags found inside of
- * https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.h#L31
+ * https://github.com/Bitcoin-ABC/bitcoin-abc/blob/master/src/script/script_flags.h
  * these flags indicate how to evaluate a certain script
  */
 sealed trait ScriptFlag {
   /** The flag's representation represented as an integer. */
   def flag: Int
 
-  /** The name of the flag as found in bitcoin core. */
+  /** The name of the flag as found in bitcoin cash. */
   def name: String
 }
 
@@ -28,14 +28,13 @@ case object ScriptVerifyP2SH extends ScriptFlag {
 /**
  * Passing a non-strict-DER signature or one with undefined hashtype to a checksig operation causes script failure.
  * Evaluating a pubkey that is not (0x04 + 64 bytes) or (0x02 or 0x03 + 32 bytes) by checksig causes script failure.
- * (softfork safe, but not used or intended as a consensus rule).
  */
 case object ScriptVerifyStrictEnc extends ScriptFlag {
   override def flag = 1 << 1
   override def name = "STRICTENC"
 }
 
-/** Passing a non-strict-DER signature to a checksig operation causes script failure (softfork safe, BIP62 rule 1). */
+/** Passing a non-strict-DER signature to a checksig operation causes script failure */
 case object ScriptVerifyDerSig extends ScriptFlag {
   override def flag = 1 << 2
   override def name = "DERSIG"
@@ -122,5 +121,23 @@ case object ScriptVerifyMinimalIf extends ScriptFlag {
 case object ScriptVerifyNullFail extends ScriptFlag {
   override def flag = 1 << 14
   override def name = "NULLFAIL"
+}
+
+/**  Public keys in scripts must be compressed */
+case object ScriptVerifyCompressedPubkeytype extends ScriptFlag {
+  override def flag = 1 << 15
+  override def name = "COMPRESSED_PUBKEYTYPE"
+}
+
+/** Do we accept signature using SIGHASH_FORKID*/
+case object ScriptEnableSigHashForkId extends ScriptFlag {
+  override def flag = 1 << 16
+  override def name = "SIGHASH_FORKID"
+}
+
+/** Do we accept activate replay protection using a different fork id.*/
+case object ScriptEnableReplayProtection extends ScriptFlag {
+  override def flag = 1 << 17
+  override def name = "REPLAY_PROTECTION"
 }
 

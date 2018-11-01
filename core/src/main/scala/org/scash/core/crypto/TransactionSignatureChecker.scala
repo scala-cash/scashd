@@ -33,7 +33,7 @@ trait TransactionSignatureChecker extends BitcoinSLogger {
   def checkSignature(txSignatureComponent: TxSigComponent, script: Seq[ScriptToken],
     pubKey: ECPublicKey, signature: ECDigitalSignature, flags: Seq[ScriptFlag]): TransactionSignatureCheckerResult = {
     logger.debug("Signature: " + signature)
-    val pubKeyEncodedCorrectly = BitcoinScriptUtil.isValidPubKeyEncoding(pubKey, txSignatureComponent.sigVersion, flags)
+    val pubKeyEncodedCorrectly = BitcoinScriptUtil.isValidPubKeyEncoding(pubKey, flags)
     if (ScriptFlagUtil.requiresStrictDerEncoding(flags) && !DERSignatureUtil.isValidSignatureEncoding(signature)) {
       logger.error("Signature was not stricly encoded der: " + signature.hex)
       SignatureValidationErrorNotStrictDerEncoding
@@ -55,7 +55,7 @@ trait TransactionSignatureChecker extends BitcoinSLogger {
       val hashType = HashType(ByteVector(0.toByte, 0.toByte, 0.toByte, hashTypeByte))
       val spk = ScriptPubKey.fromAsm(sigsRemovedScript)
       val hashForSignature = TransactionSignatureSerializer.hashForSignature(
-        BaseTxSigComponent(
+        TxSigComponent(
           txSignatureComponent.transaction,
           txSignatureComponent.inputIndex,
           TransactionOutput(txSignatureComponent.output.value, spk),
