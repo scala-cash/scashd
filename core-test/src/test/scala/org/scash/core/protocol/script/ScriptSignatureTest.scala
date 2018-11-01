@@ -111,7 +111,7 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
     for {
       testCaseI <- testCases.zipWithIndex
     } yield {
-      val (testCase, idx) = testCaseI
+      val (testCase, _) = testCaseI
 
       Transaction(testCase.transaction.hex) must be(testCase.transaction)
 
@@ -137,7 +137,8 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
 
       Vector(regTx, oldTx)
         .map(TransactionSignatureSerializer.hashForSignature(_, testCase.hashType))
-        .zip(List(testCase.regularSigHash.hex, testCase.noForkKidSigHash.hex).map(BitcoinSUtil.flipEndianness))
+        .zip(List(testCase.regularSigHash.hex, testCase.noForkKidSigHash.hex)
+          .map(BitcoinSUtil.flipEndianness))
         .map { case (sig, test) => sig must be(DoubleSha256Digest(test)) }
     }
   }

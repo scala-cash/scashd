@@ -9,7 +9,13 @@ import org.scalatest.{ FlatSpec, MustMatchers }
 class PolicyTest extends FlatSpec with MustMatchers {
 
   "Policy" must "determine what the mandatory script verify flags are" in {
-    Policy.mandatoryScriptVerifyFlags must be(Seq(ScriptVerifyP2SH))
+    Policy.mandatoryScriptVerifyFlags must be(
+      Seq(
+        ScriptVerifyP2SH,
+        ScriptVerifyStrictEnc,
+        ScriptEnableSigHashForkId,
+        ScriptVerifyLowS,
+        ScriptVerifyNullFail))
   }
 
 }

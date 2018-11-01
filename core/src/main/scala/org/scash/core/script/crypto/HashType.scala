@@ -99,7 +99,7 @@ object HashType extends Factory[HashType] {
   def isAnyoneCanPay(hashType: HashType): Boolean = hashType match {
     case _: SIGHASH_ANYONECANPAY | _: SIGHASH_ALL_ANYONECANPAY | _: SIGHASH_SINGLE_ANYONECANPAY |
       _: SIGHASH_NONE_ANYONECANPAY => true
-    case _: SIGHASH_ALL | _: SIGHASH_SINGLE | _: SIGHASH_NONE => false
+    case _: SIGHASH_ALL | _: SIGHASH_SINGLE | _: SIGHASH_NONE | _: SIGHASH_FORKVALUE => false
   }
 
   lazy val hashTypes = Seq(sigHashAll, sigHashNone, sigHashSingle, sigHashAnyoneCanPay,
@@ -210,4 +210,8 @@ case class SIGHASH_NONE_ANYONECANPAY(override val num: Int32) extends HashType {
 
 case class SIGHASH_SINGLE_ANYONECANPAY(override val num: Int32) extends HashType {
   require(HashType.isSigHashSingleAnyoneCanPay(num), "The given number was not a SIGHASH_SINGLE_ANYONECANPAY number: " + num)
+}
+
+case class SIGHASH_FORKVALUE(override val num: Int32, override val forkId: Int32) extends HashType {
+  //require(HashType.isSigHashForkId(num), "The given number has not a SIGHASH_FORKID number: " + num)
 }

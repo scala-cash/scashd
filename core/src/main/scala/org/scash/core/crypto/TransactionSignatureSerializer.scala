@@ -89,8 +89,7 @@ sealed abstract class TransactionSignatureSerializer {
           // actually returns the constant "1" to indicate an error, which is never checked for. Oops.
           errorHash.bytes
         } else {
-          val sigHashSingleTx = sigHashSingle(txWithInputSigsRemoved, inputIndex)
-          sigHashSingleTx.bytes ++ sigHashBytes
+          sigHashSingle(txWithInputSigsRemoved, inputIndex).bytes ++ sigHashBytes
         }
       case SIGHASH_ALL(_) => txWithInputSigsRemoved.bytes ++ sigHashBytes
       case SIGHASH_ANYONECANPAY(_) =>
@@ -110,10 +109,12 @@ sealed abstract class TransactionSignatureSerializer {
         val sigHashSingleTx = sigHashSingle(txWithInputSigsRemoved, inputIndex)
         val sigHashSingleAnyoneCanPay = sigHashAnyoneCanPay(sigHashSingleTx, inputWithConnectedScript)
         sigHashSingleAnyoneCanPay.bytes ++ sigHashBytes
+
+      case _ => txWithInputSigsRemoved.bytes ++ sigHashBytes
     }
   }
 
-  def serializeBIP143(txSigComponent: TxSigComponent, hashType: HashType): ByteVector = {
+  def serializeReplayProtected(txSigComponent: TxSigComponent, hashType: HashType): ByteVector = {
     val spendingTransaction = txSigComponent.transaction
     val inputIndex = txSigComponent.inputIndex
     val output = txSigComponent.output
@@ -151,11 +152,23 @@ sealed abstract class TransactionSignatureSerializer {
     val scriptBytes = BitcoinSUtil.toByteVector(script)
 
     val i = spendingTransaction.inputs(inputIndexInt)
-    val serializationForSig: ByteVector = spendingTransaction.version.bytes.reverse ++ outPointHash ++ sequenceHash ++
-      i.previousOutput.bytes ++ CompactSizeUInt.calc(scriptBytes).bytes ++
-      scriptBytes ++ amount.bytes ++ i.sequence.bytes.reverse ++
-      outputHash ++ spendingTransaction.lockTime.bytes.reverse ++ hashType.num.bytes.reverse
-    logger.debug("Serialization for signature for WitnessV0Sig: " + BitcoinSUtil.encodeHex(serializationForSig))
+    val serializationForSig =
+      spendingTransaction.version.bytes.reverse ++
+        outPointHash ++
+        sequenceHash ++
+        // The input being signed (replacing the scriptSig with scriptCode + amount)
+        // The prevout may already be contained in hashPrevout, and the nSequence
+        // may already be contain in hashSequence.
+        i.previousOutput.bytes ++
+        CompactSizeUInt.calc(scriptBytes).bytes ++
+        scriptBytes ++
+        amount.bytes ++
+        i.sequence.bytes.reverse ++
+        // Outputs (none/one/all, depending on flags)
+        outputHash ++
+        spendingTransaction.lockTime.bytes.reverse ++
+        hashType.num.bytes.reverse
+    logger.debug("Serialization for signature: " + BitcoinSUtil.encodeHex(serializationForSig))
     serializationForSig
   }
 
@@ -169,16 +182,20 @@ sealed abstract class TransactionSignatureSerializer {
     if (inputIndex >= UInt32(spendingTransaction.inputs.size)) {
       logger.warn("Our inputIndex is out of the range of the inputs in the spending transaction")
       errorHash
-    } else if ((hashType.isInstanceOf[SIGHASH_SINGLE] || hashType.isInstanceOf[SIGHASH_SINGLE_ANYONECANPAY]) &&
+    } else if ((HashType.isSigHashSingle(hashType.num) || HashType.isSigHashSingleAnyoneCanPay(hashType.num)) &&
       inputIndex >= UInt32(spendingTransaction.outputs.size)) {
       logger.warn("When we have a SIGHASH_SINGLE we cannot have more inputs than outputs")
       errorHash
     } else {
-      val ssTxSig = if (HashType.isSigHashForkId(hashType.num) && txSigComponent.flags.contains(ScriptEnableSigHashForkId)) {
-        serializeBIP143(txSigComponent, hashType)
-      } else {
-        serializeLegacy(txSigComponent, hashType)
-      }
+      val sigHash = txSigComponent.flags
+        .find(_ == ScriptEnableReplayProtection)
+        .fold(hashType)(_ => SIGHASH_FORKVALUE(hashType.num, Int32(0xff0000) | (hashType.forkId ^ Int32(0xdead))))
+
+      val ssTxSig = if (HashType.isSigHashForkId(hashType.num) &&
+        txSigComponent.flags.contains(ScriptEnableSigHashForkId))
+        serializeReplayProtected(txSigComponent, sigHash)
+      else
+        serializeLegacy(txSigComponent, sigHash)
       logger.trace("Serialized tx for signature: " + BitcoinSUtil.encodeHex(ssTxSig))
       logger.trace("HashType: " + hashType.num)
       CryptoUtil.doubleSHA256(ssTxSig)
@@ -186,52 +203,48 @@ sealed abstract class TransactionSignatureSerializer {
   }
 
   /** Sets the input's sequence number to zero EXCEPT for the input at inputIndex. */
-  private def setSequenceNumbersZero(inputs: Seq[TransactionInput], inputIndex: UInt32): Seq[TransactionInput] = for {
-    (input, index) <- inputs.zipWithIndex
-  } yield {
-    if (UInt32(index) == inputIndex) input
-    else TransactionInput(input.previousOutput, input.scriptSignature, UInt32.zero)
-  }
+  private def setSequenceNumbersZero(inputs: Seq[TransactionInput], inputIndex: UInt32): Seq[TransactionInput] =
+    inputs.zipWithIndex.map {
+      case (input, idx) =>
+        if (UInt32(idx) == inputIndex)
+          input
+        else
+          TransactionInput(input.previousOutput, input.scriptSignature, UInt32.zero)
+    }
 
   /** Executes the [[SIGHASH_NONE]] procedure on a spending transaction for the input specified by inputIndex. */
   private def sigHashNone(spendingTransaction: Transaction, inputIndex: UInt32): Transaction = {
-    //following this implementation from bitcoinj
-    //[[https://github.com/bitcoinj/bitcoinj/blob/09a2ca64d2134b0dcbb27b1a6eb17dda6087f448/core/src/main/java/org/bitcoinj/core/Transaction.java#L957]]
     //means that no outputs are signed at all
     //set the sequence number of all inputs to 0 EXCEPT the input at inputIndex
-    val updatedInputs: Seq[TransactionInput] = setSequenceNumbersZero(spendingTransaction.inputs, inputIndex)
-    val sigHashNoneTx = BaseTransaction(spendingTransaction.version, updatedInputs, Nil, spendingTransaction.lockTime)
-    //append hash type byte onto the end of the tx bytes
-    sigHashNoneTx
+    val updatedInputs = setSequenceNumbersZero(spendingTransaction.inputs, inputIndex)
+    BaseTransaction(spendingTransaction.version, updatedInputs, Nil, spendingTransaction.lockTime)
   }
 
   /** Executes the [[SIGHASH_SINGLE]] procedure on a spending transaction for the input specified by inputIndex */
   private def sigHashSingle(spendingTransaction: Transaction, inputIndex: UInt32): Transaction = {
-    //following this implementation from bitcoinj
-    //[[https://github.com/bitcoinj/bitcoinj/blob/09a2ca64d2134b0dcbb27b1a6eb17dda6087f448/core/src/main/java/org/bitcoinj/core/Transaction.java#L964]]
     // In SIGHASH_SINGLE the outputs after the matching input index are deleted, and the outputs before
     // that position are "nulled out". Unintuitively, the value in a "null" transaction is set to -1.
-    val updatedOutputsOpt: Seq[Option[TransactionOutput]] = for {
-      (output, index) <- spendingTransaction.outputs.zipWithIndex
-    } yield {
-      if (UInt32(index) < inputIndex) {
-        Some(EmptyTransactionOutput)
-      } else if (UInt32(index) == inputIndex) Some(output)
-      else None
-    }
-    val updatedOutputs: Seq[TransactionOutput] = updatedOutputsOpt.flatten
+    val updatedOutputs = spendingTransaction.outputs
+      .zipWithIndex
+      .map {
+        case (output, idx) =>
+          if (UInt32(idx) < inputIndex)
+            Some(EmptyTransactionOutput)
+          else if (UInt32(idx) == inputIndex)
+            Some(output)
+          else
+            None
+      }
+      .flatten
 
-    //create blank inputs with sequence numbers set to zero EXCEPT
-    //the input at the inputIndex
-    val updatedInputs: Seq[TransactionInput] = setSequenceNumbersZero(spendingTransaction.inputs, inputIndex)
-    val sigHashSingleTx = BaseTransaction(spendingTransaction.version, updatedInputs, updatedOutputs, spendingTransaction.lockTime)
-    sigHashSingleTx
+    //create blank inputs with sequence numbers set to zero EXCEPT the input at the inputIndex
+    val updatedInputs = setSequenceNumbersZero(spendingTransaction.inputs, inputIndex)
+    BaseTransaction(spendingTransaction.version, updatedInputs, updatedOutputs, spendingTransaction.lockTime)
   }
 
   /** Executes the [[SIGHASH_ANYONECANPAY]] procedure on a spending transaction at inputIndex. */
-  private def sigHashAnyoneCanPay(spendingTransaction: Transaction, input: TransactionInput): Transaction = {
+  private def sigHashAnyoneCanPay(spendingTransaction: Transaction, input: TransactionInput): Transaction =
     BaseTransaction(spendingTransaction.version, Seq(input), spendingTransaction.outputs, spendingTransaction.lockTime)
-  }
 
   /** Removes [[OP_CODESEPARATOR]] operations then returns the script. */
   def removeOpCodeSeparators(script: Seq[ScriptToken]): Seq[ScriptToken] = {

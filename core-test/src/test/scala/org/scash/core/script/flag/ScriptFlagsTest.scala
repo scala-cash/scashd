@@ -55,10 +55,10 @@ class ScriptFlagsTest extends FlatSpec with MustMatchers {
     ScriptVerifyCheckSequenceVerify.flag must be(1 << 10)
   }
   "ScriptVerifyMinimalIf" must "have the flag 1 << 11" in {
-    ScriptVerifyMinimalIf.flag must be(1 << 11)
+    ScriptVerifyMinimalIf.flag must be(1 << 13)
   }
   "ScriptVerifyNullFail" must "have the flag 1 << 13" in {
-    ScriptVerifyNullFail.flag must be(1 << 13)
+    ScriptVerifyNullFail.flag must be(1 << 14)
   }
   "ScriptVerifyCompressedPubkeytype" must "have the flag 1 << 15" in {
     ScriptVerifyCompressedPubkeytype.flag must be(1 << 15)
