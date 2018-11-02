@@ -92,7 +92,7 @@ object HashType extends Factory[HashType] {
   def isAnyoneCanPay(hashType: HashType): Boolean = hashType match {
     case _: SIGHASH_ANYONECANPAY | _: SIGHASH_ALL_ANYONECANPAY | _: SIGHASH_SINGLE_ANYONECANPAY |
       _: SIGHASH_NONE_ANYONECANPAY => true
-    case _: SIGHASH_ALL | _: SIGHASH_SINGLE | _: SIGHASH_NONE | _: SIGHASH_FORKVALUE => false
+    case _: SIGHASH_ALL | _: SIGHASH_SINGLE | _: SIGHASH_NONE => false
   }
 
   lazy val hashTypes = Seq(sigHashAll, sigHashNone, sigHashSingle, sigHashAnyoneCanPay,
@@ -161,8 +161,6 @@ object HashType extends Factory[HashType] {
 
   /**
    * Checks if the given digital signature has a valid hash type
-   * Mimics this functionality inside of Bitcoin Core
-   * https://github.com/bitcoin/bitcoin/blob/b83264d9c7a8ddb79f64bd9540caddc8632ef31f/src/script/interpreter.cpp#L186
    */
   def isDefinedHashtypeSignature(sig: ECDigitalSignature): Boolean = {
     sig.bytes.nonEmpty && hashTypeBytes.contains(sig.bytes.last)
@@ -203,8 +201,4 @@ case class SIGHASH_NONE_ANYONECANPAY(override val num: Int32) extends HashType {
 
 case class SIGHASH_SINGLE_ANYONECANPAY(override val num: Int32) extends HashType {
   require(HashType.isSigHashSingleAnyoneCanPay(num), "The given number was not a SIGHASH_SINGLE_ANYONECANPAY number: " + num)
-}
-
-case class SIGHASH_FORKVALUE(override val num: Int32) extends HashType {
-  //require(HashType.isSigHashForkId(num), "The given number has not a SIGHASH_FORKID number: " + num)
 }

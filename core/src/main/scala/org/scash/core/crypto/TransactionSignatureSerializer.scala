@@ -190,27 +190,20 @@ sealed abstract class TransactionSignatureSerializer {
       val sigHash = txSigComponent.flags
         .find(_ == ScriptEnableReplayProtection)
         .fold(hashType) { _ =>
-          val newForkValue = (Int32(0xff0000) | ((hashType.num >> Int32(8)) ^ Int32(0xdead)))
-          val newFork = SIGHASH_FORKVALUE((newForkValue << Int32(8)) | (hashType.num & Int32(0xff)))
-          println(s"new forkValue: $newForkValue")
-          println(s"new fork: $newFork")
+          val newForkValue = (0xff0000 | ((hashType.num.toInt >>> 8) ^ 0xdead))
+          val newFork = HashType.fromNumber(Int32((newForkValue << 8) | (hashType.num.toInt) & 0xff))
+          logger.trace(s"new fork value: $newFork")
           newFork
         }
 
-      logger.error(hashType.num.toString)
-      logger.error(sigHash.num.toString)
-      logger.error(HashType.isSigHashForkId(hashType.num).toString)
-      logger.error(HashType.isSigHashForkId(sigHash.num).toString)
-      logger.error(txSigComponent.flags.contains(ScriptEnableSigHashForkId).toString)
-
-      val ssTxSig = if (HashType.isSigHashForkId(sigHash.num) &&
-        txSigComponent.flags.contains(ScriptEnableSigHashForkId)) {
-        println(sigHash)
+      val ssTxSig = if (HashType.isSigHashForkId(hashType.num) &&
+        txSigComponent.flags.contains(ScriptEnableSigHashForkId))
         serializeReplayProtected(txSigComponent, sigHash)
-      } else
+      else
         serializeLegacy(txSigComponent, sigHash)
+
       logger.trace("Serialized tx for signature: " + BitcoinSUtil.encodeHex(ssTxSig))
-      logger.trace("HashType: " + sigHash.num)
+      logger.trace("HashType: " + hashType.num)
       CryptoUtil.doubleSHA256(ssTxSig)
     }
   }

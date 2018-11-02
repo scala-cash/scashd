@@ -94,7 +94,7 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
     scriptSig.hex must be(TestUtil.p2pkScriptSig.hex)
   }
 
-  it must "read sighash.json and return result" in {
+  it must "read sighash.json and return result for all types of sigs" in {
     import org.scash.core.protocol.script.testprotocol.HashTestCaseProtocol._
     //"raw_transaction,
     // script,
@@ -106,38 +106,38 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
 
     val source = Source.fromURL(this.getClass.getResource("/sighash.json"))
     val lines = try source.getLines.filterNot(_.isEmpty).map(_.trim).mkString("\n") finally source.close()
-    val testCases: Seq[SignatureHashTestCase] = lines.parseJson.convertTo[Seq[SignatureHashTestCase]]
+    val testCases = lines.parseJson.convertTo[Seq[SignatureHashTestCase]]
 
     for {
       testCaseI <- testCases.zipWithIndex
     } yield {
-      val (testCase, _) = testCaseI
+      val (test, _) = testCaseI
 
-      Transaction(testCase.transaction.hex) must be(testCase.transaction)
+      Transaction(test.transaction.hex) must be(test.transaction)
 
-      val output = TransactionOutput(CurrencyUnits.zero, testCase.script)
+      val output = TransactionOutput(CurrencyUnits.zero, test.script)
 
       val regTx = TxSigComponent(
-        testCase.transaction,
-        testCase.inputIndex,
+        test.transaction,
+        test.inputIndex,
         output,
         List(ScriptEnableSigHashForkId))
 
       val oldTx = TxSigComponent(
-        testCase.transaction,
-        testCase.inputIndex,
+        test.transaction,
+        test.inputIndex,
         output,
         (Policy.standardFlags.toSet - ScriptEnableSigHashForkId).toList)
 
       val repTx = TxSigComponent(
-        testCase.transaction,
-        testCase.inputIndex,
+        test.transaction,
+        test.inputIndex,
         output,
         List(ScriptEnableReplayProtection, ScriptEnableSigHashForkId))
 
       Vector(regTx, oldTx, repTx)
-        .map(TransactionSignatureSerializer.hashForSignature(_, testCase.hashType))
-        .zip(List(testCase.regularSigHash.hex, testCase.noForkKidSigHash.hex, testCase.replayProtectedSigHash.hex)
+        .map(TransactionSignatureSerializer.hashForSignature(_, test.hashType))
+        .zip(List(test.regularSigHash.hex, test.noForkKidSigHash.hex, test.replayProtectedSigHash.hex)
           .map(BitcoinSUtil.flipEndianness))
         .map { case (sig, test) => sig must be(DoubleSha256Digest(test)) }
     }

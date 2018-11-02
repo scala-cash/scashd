@@ -221,7 +221,7 @@ object UInt32 extends Factory[UInt32] with BaseNumbers[UInt32] {
 
   lazy val zero = UInt32(0)
   lazy val one = UInt32(1)
-
+  zero.hex
   lazy val min = zero
   lazy val max = UInt32(4294967295L)
 
