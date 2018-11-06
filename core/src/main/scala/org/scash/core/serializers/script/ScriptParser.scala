@@ -1,5 +1,10 @@
 package org.scash.core.serializers.script
 
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
+
 import org.scash.core.number.UInt32
 import org.scash.core.script.constant._
 import org.scash.core.util.BitcoinSUtil
@@ -10,9 +15,6 @@ import scodec.bits.ByteVector
 import scala.annotation.tailrec
 import scala.util.Try
 
-/**
- * Created by chris on 1/7/16.
- */
 sealed abstract class ScriptParser extends Factory[List[ScriptToken]] {
 
   /** Parses a list of bytes into a list of script tokens */
@@ -50,7 +52,6 @@ sealed abstract class ScriptParser extends Factory[List[ScriptToken]] {
       logger.debug("Accum: " + accum)*/
       operations match {
         //for parsing strings like 'Az', need to remove single quotes
-        //example: [[https://github.com/bitcoin/bitcoin/blob/master/src/test/data/script_valid.json#L24]]
         case h +: t if (h.size > 0 && h.head == ''' && h.last == ''') =>
           val strippedQuotes = h.replace("'", "")
           if (strippedQuotes.size == 0) {
@@ -114,10 +115,10 @@ sealed abstract class ScriptParser extends Factory[List[ScriptToken]] {
       val bytes = BitcoinSUtil.decodeHex(str)
       parse(bytes)
     } else {
-      //this handles weird cases for parsing with various formats in bitcoin core.
-      //take a look at https://github.com/bitcoin/bitcoin/blob/605c17844ea32b6d237db6d83871164dc7d59dab/src/core_read.cpp#L53-L88
-      //for the offical parsing algorithm, for examples of weird formats look inside of
-      //[[https://github.com/bitcoin/bitcoin/blob/master/src/test/data/script_valid.json]]
+      //this handles weird cases for parsing with various formats in bitcoin cash.
+      //take a look at https://github.com/Bitcoin-ABC/bitcoin-abc/blob/master/src/core_read.cpp
+      //for the official parsing algorithm, for examples of weird formats look inside of
+      //[[script_valid.json]]
       val parsedBytesFromString = loop(str.split(" ").toList, ByteVector.empty).reverse
       parse(parsedBytesFromString)
     }

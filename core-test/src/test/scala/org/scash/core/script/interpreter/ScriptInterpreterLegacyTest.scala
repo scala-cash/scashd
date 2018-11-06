@@ -1,5 +1,10 @@
 package org.scash.core.script.interpreter
 
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
+
 import org.scalatest.{ FlatSpec, MustMatchers }
 import org.scash.core.crypto.TxSigComponent
 import org.scash.core.currency.CurrencyUnits
@@ -7,20 +12,16 @@ import org.scash.core.protocol.script._
 import org.scash.core.protocol.transaction.TransactionOutput
 import org.scash.core.script.PreExecutionScriptProgram
 import org.scash.core.script.flag.ScriptFlagFactory
-import org.scash.core.script.interpreter.testprotocol.CoreTestCaseProtocol._
+import org.scash.core.script.interpreter.testprotocol.ABCTestCaseProtocol._
 import org.scash.core.script.interpreter.testprotocol.ScripTestCase
 import org.scash.core.util._
 import spray.json._
 
 import scala.io.Source
 
-/**
- * Created by chris on 1/6/16.
- */
 class ScriptInterpreterLegacyTest extends FlatSpec with MustMatchers {
-  private def logger = BitcoinSLogger.logger
 
-  "ScriptInterpreter" must "evaluate all the legacu scripts from the bitcoin script_tests_legacy.json" in {
+  "ScriptInterpreter" must "evaluate all the legacy scripts from the bitcoin script_tests_legacy.json" in {
 
     val source = Source.fromURL(getClass.getResource("/script_tests_legacy.json"))
 

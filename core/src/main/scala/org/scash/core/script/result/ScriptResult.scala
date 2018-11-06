@@ -60,6 +60,27 @@ case object ScriptErrorPubKeyCount extends ScriptError {
   override def description: String = "PUBKEY_COUNT"
 }
 
+/* Bitcoin Cash only ERROR codes */
+//SCRIPT_ERR_INVALID_OPERAND_SIZE
+case object ScriptErrorInvalidOperandSize extends ScriptError {
+  override def description: String = "OPERAND_SIZE"
+}
+
+//SCRIPT_ERR_INVALID_NUMBER_RANGE
+case object ScriptErrorInvalidNumberRange extends ScriptError {
+  override def description: String = "INVALID_NUMBER_RANGE"
+}
+
+//SCRIPT_ERR_IMPOSSIBLE_ENCODING
+case object ScriptErrorImpossibleEncoding extends ScriptError {
+  override def description: String = "IMPOSSIBLE_ENCODING"
+}
+
+//SCRIPT_ERR_INVALID_SPLIT_RANGE
+case object ScriptErrorInvalidSplitRange extends ScriptError {
+  override def description: String = "SPLIT_RANGE"
+}
+
 /* Failed verify operations */
 
 //SCRIPT_ERR_VERIFY,
@@ -165,37 +186,94 @@ case object ScriptErrorCleanStack extends ScriptError {
   override def description: String = "CLEANSTACK"
 }
 
-/* softfork safeness */
-//SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS,
-case object ScriptErrorDiscourageUpgradableNOPs extends ScriptError {
-  override def description: String = "DISCOURAGE_UPGRADABLE_NOPS"
-}
-
-//SCRIPT_ERR_ERROR_COUNT
-case object ScriptErrorCount extends ScriptError {
-  override def description: String = "ERROR_COUNT"
-}
-
 //SCRIPT_ERR_MINIMALIF
 case object ScriptErrorMinimalIf extends ScriptError {
   override def description = "MINIMALIF"
 }
+
 //SCRIPT_ERR_SIG_NULLFAIL
 case object ScriptErrorSigNullFail extends ScriptError {
   override def description = "NULLFAIL"
+}
+
+//SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS
+case object ScriptErrorDiscourageUpgradableNOPs extends ScriptError {
+  override def description: String = "DISCOURAGE_UPGRADABLE_NOPS"
+}
+
+//SCRIPT_ERR_NONCOMPRESSED_PUBKEY
+case object ScriptErrorNonCompressedPubkey extends ScriptError {
+  override def description: String = "NONCOMPRESSED_PUBKEY"
+}
+
+//SCRIPT_ERR_ILLEGAL_FORKID
+case object ScriptErrorIllegalForkId extends ScriptError {
+  override def description: String = "ILLEGAL_FORKID"
+}
+
+//SCRIPT_ERR_MUST_USE_FORKID
+case object ScriptErrorMustUseForkId extends ScriptError {
+  override def description: String = "MISSING_FORKID"
+}
+
+//SCRIPT_ERR_DIV_BY_ZERO
+case object ScriptErrorDivByZero extends ScriptError {
+  override def description: String = "DIV_BY_ZERO"
+}
+
+//SCRIPT_ERR_MOD_BY_ZERO
+case object ScriptErrorModByZero extends ScriptError {
+  override def description: String = "MOD_BY_ZERO"
 }
 /**
  * Factory companion object for creating ScriptError objects
  */
 object ScriptResult {
-  def results: Seq[ScriptResult] = Seq(
-    ScriptOk, ScriptErrorUnknownError, ScriptErrorEvalFalse, ScriptErrorOpReturn,
-    ScriptErrorPushSize, ScriptErrorScriptSize, ScriptErrorOpCount, ScriptErrorStackSize, ScriptErrorSigCount,
-    ScriptErrorPubKeyCount, ScriptErrorVerify, ScriptErrorEqualVerify, ScriptErrorCheckSigVerify, ScriptErrorCheckMultiSigVerify,
-    ScriptErrorNumEqualVerify, ScriptErrorBadOpCode, ScriptErrorDisabledOpCode, ScriptErrorInvalidStackOperation,
-    ScriptErrorInvalidAltStackOperation, ScriptErrorUnbalancedConditional, ScriptErrorNegativeLockTime,
-    ScriptErrorUnsatisfiedLocktime, ScriptErrorSigHashType, ScriptErrorSigDer, ScriptErrorMinimalData, ScriptErrorSigPushOnly,
-    ScriptErrorSigHighS, ScriptErrorSigNullDummy, ScriptErrorPubKeyType, ScriptErrorCleanStack, ScriptErrorDiscourageUpgradableNOPs,
-    ScriptErrorCount, ScriptErrorMinimalIf, ScriptErrorSigNullFail)
-  def apply(str: String): ScriptResult = results.filter(_.description == str).head
+  val results: List[ScriptResult] = List(
+    ScriptOk,
+    ScriptErrorUnknownError,
+    ScriptErrorEvalFalse,
+    ScriptErrorOpReturn,
+    ScriptErrorScriptSize,
+    ScriptErrorPushSize,
+    ScriptErrorOpCount,
+    ScriptErrorStackSize,
+    ScriptErrorSigCount,
+    ScriptErrorPubKeyCount,
+    ScriptErrorInvalidOperandSize,
+    ScriptErrorInvalidNumberRange,
+    ScriptErrorImpossibleEncoding,
+    ScriptErrorInvalidSplitRange,
+    ScriptErrorVerify,
+    ScriptErrorEqualVerify,
+    ScriptErrorCheckMultiSigVerify,
+    ScriptErrorCheckSigVerify,
+    ScriptErrorNumEqualVerify,
+    ScriptErrorBadOpCode,
+    ScriptErrorDisabledOpCode,
+    ScriptErrorInvalidStackOperation,
+    ScriptErrorInvalidAltStackOperation,
+    ScriptErrorUnbalancedConditional,
+    ScriptErrorNegativeLockTime,
+    ScriptErrorUnsatisfiedLocktime,
+    ScriptErrorSigHashType,
+    ScriptErrorSigDer,
+    ScriptErrorMinimalData,
+    ScriptErrorSigPushOnly,
+    ScriptErrorSigHighS,
+    ScriptErrorSigNullDummy,
+    ScriptErrorPubKeyType,
+    ScriptErrorCleanStack,
+    ScriptErrorMinimalIf,
+    ScriptErrorSigNullFail,
+    ScriptErrorDiscourageUpgradableNOPs,
+    ScriptErrorNonCompressedPubkey,
+    ScriptErrorIllegalForkId,
+    ScriptErrorMustUseForkId,
+    ScriptErrorDivByZero,
+    ScriptErrorModByZero)
+
+  val resultsMap: Map[String, ScriptResult] = results.map(s => (s.description, s)).toMap
+
+  def apply(str: String): Option[ScriptResult] = resultsMap.get(str)
 }

@@ -12,6 +12,7 @@ object Deps {
     val akkav = "10.1.1"
     val akkaStreamv = "2.5.12"
     val playv = "2.6.9"
+    val scalazv = "7.2.26"
   }
 
   object Compile {
@@ -22,6 +23,7 @@ object Deps {
     val akkaHttp = "com.typesafe.akka" %% "akka-http" % V.akkav
     val akkaStream = "com.typesafe.akka" %% "akka-stream" % V.akkaStreamv
     val playJson = "com.typesafe.play" %% "play-json" % V.playv
+    val scalaz = "org.scalaz" %% "scalaz-core" % V.scalazv withSources() withJavadoc()
   }
 
   object Test {
@@ -38,7 +40,8 @@ object Deps {
   val core = List(
     Compile.bouncycastle,
     Compile.scodec,
-    Compile.slf4j
+    Compile.slf4j,
+    Compile.scalaz
   )
 
   val coreGen = List(

@@ -1,5 +1,10 @@
 package org.scash.core.script
 
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
+
 import org.scash.core.util.BitcoinSUtil
 import org.scash.core.script.arithmetic.ArithmeticOperation
 import org.scash.core.script.bitwise.BitwiseOperation
@@ -13,7 +18,6 @@ import org.scash.core.script.stack.StackOperation
 import org.scash.core.util.BitcoinSLogger
 
 /**
- * Created by chris on 1/8/16.
  * Responsible for matching script op codes with their given
  * hexadecimal representation or byte representation
  */
@@ -26,6 +30,7 @@ trait ScriptOperationFactory[T <: ScriptOperation] extends BitcoinSLogger {
    * Finds a [[ScriptOperation]] from a given string
    */
   def fromString(str: String): Option[T] = {
+    logger.trace(s"parsing string: $str")
     val result: Option[T] = operations.find(_.toString == str)
     if (result.isEmpty) {
       //try and remove the 'OP_' prefix on the operations and see if it matches anything.

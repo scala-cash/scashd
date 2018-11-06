@@ -1,5 +1,10 @@
 package org.scash.core.script.interpreter
 
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
+
 import org.scash.core.consensus.Consensus
 import org.scash.core.currency.{ CurrencyUnit, CurrencyUnits }
 import org.scash.core.protocol.CompactSizeUInt
@@ -21,14 +26,12 @@ import org.scash.core.script.stack._
 import org.scash.core.util.{ BitcoinSLogger, BitcoinSUtil, BitcoinScriptUtil }
 
 import scala.annotation.tailrec
-/**
- * Created by chris on 1/6/16.
- */
+
 sealed abstract class ScriptInterpreter {
 
   private def logger = BitcoinSLogger.logger
   /**
-   * Currently bitcoin core limits the maximum number of non-push operations per script
+   * Currently bitcoin cash limits the maximum number of non-push operations per script
    * to 201
    */
   private lazy val maxScriptOps = 201
@@ -203,7 +206,7 @@ sealed abstract class ScriptInterpreter {
               logger.error("Script is invalid even when a OP_VERIF or OP_VERNOTIF occurs in an unexecuted OP_IF branch")
               loop(ScriptProgram(p, ScriptErrorBadOpCode), opCount)
             //disabled splice operation
-            case _ if p.script.intersect(Seq(OP_CAT, OP_SUBSTR, OP_LEFT, OP_RIGHT)).nonEmpty =>
+            case _ if p.script.intersect(Seq(OP_CAT, OP_SPLIT, OP_NUM2BIN, OP_BIN2NUM)).nonEmpty =>
               logger.error("Script is invalid because it contains a disabled splice operation")
               loop(ScriptProgram(p, ScriptErrorDisabledOpCode), opCount)
             //disabled bitwise operations

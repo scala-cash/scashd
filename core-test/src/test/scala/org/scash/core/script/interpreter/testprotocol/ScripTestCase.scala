@@ -1,24 +1,22 @@
 package org.scash.core.script.interpreter.testprotocol
 
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
+
 import org.scash.core.protocol.script.{ ScriptPubKey, ScriptSignature }
 import org.scash.core.script.result.ScriptResult
 
 /**
- * Created by chris on 1/18/16.
- * This represents a core test case for valid and invalid scripts
+ * This represents a test case for valid and invalid scripts
  * the scripts can be seen in the script_tests.json file
  * files.
  */
-trait ScripTestCase {
-  def scriptSig: ScriptSignature
-  def scriptPubKey: ScriptPubKey
-  def flags: String
-  def expectedResult: ScriptResult
-  def comments: String
-  def raw: String
-}
-
-case class ScriptTestCaseImpl(
+case class ScripTestCase(
   scriptSig: ScriptSignature,
-  scriptPubKey: ScriptPubKey, flags: String, expectedResult: ScriptResult,
-  comments: String, raw: String) extends ScripTestCase
+  scriptPubKey: ScriptPubKey,
+  flags: String,
+  expectedResult: ScriptResult,
+  comments: String,
+  raw: String)

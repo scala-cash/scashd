@@ -1,10 +1,12 @@
 package org.scash.core.script.crypto
-
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
 import org.scash.core.script.constant.ScriptOperation
 import org.scash.core.script.ScriptOperationFactory
 
 /**
- * Created by chris on 1/6/16.
  * Represents an operation where a cryptographic function is applied
  */
 sealed trait CryptoOperation extends ScriptOperation
@@ -80,7 +82,25 @@ case object OP_CHECKMULTISIGVERIFY extends CryptoSignatureEvaluation {
   override def opCode = 175
 }
 
+/**
+ * Permits data to be imported into a script, and have its validity
+ * checked against some signing authority such as an "Oracle".
+ *
+ * Read more: [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/op_checkdatasig.md]]
+ */
+case object OP_CHECKDATASIG extends CryptoSignatureEvaluation {
+  override def opCode = 186
+}
+
+/** Same as OP_CHECKDATASIG, but OP_VERIFY is executed afterward. */
+case object OP_CHECKDATASIGVERIFY extends CryptoSignatureEvaluation {
+  override def opCode = 187
+}
+
 object CryptoOperation extends ScriptOperationFactory[CryptoOperation] {
-  override def operations = Seq(OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY,
+  override def operations = Seq(
+    OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY,
+    OP_CHECKSIG, OP_CHECKSIGVERIFY,
+    OP_CHECKDATASIG, OP_CHECKDATASIGVERIFY,
     OP_CODESEPARATOR, OP_HASH160, OP_HASH256, OP_RIPEMD160, OP_SHA1, OP_SHA256)
 }

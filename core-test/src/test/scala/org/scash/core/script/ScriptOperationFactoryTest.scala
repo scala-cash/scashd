@@ -6,7 +6,7 @@ import org.scash.core.script.constant._
 import org.scash.core.script.control.OP_IF
 import org.scash.core.script.crypto.OP_RIPEMD160
 import org.scash.core.script.locktime.OP_CHECKLOCKTIMEVERIFY
-import org.scash.core.script.splice.OP_SUBSTR
+import org.scash.core.script.splice.OP_SPLIT
 import org.scash.core.script.stack.OP_TOALTSTACK
 import org.scash.core.util.{ BitcoinSUtil }
 import org.scalatest.{ FlatSpec, MustMatchers }
@@ -58,7 +58,7 @@ class ScriptOperationFactoryTest extends FlatSpec with MustMatchers {
   it must "find a splice operation from it's hex representation" in {
     val spliceOperation = ScriptOperation("7F")
     spliceOperation.isDefined must be(true)
-    spliceOperation.get must be(OP_SUBSTR)
+    spliceOperation.get must be(OP_SPLIT)
   }
 
   it must "find OP_1NEGATE from its hex representation" in {
