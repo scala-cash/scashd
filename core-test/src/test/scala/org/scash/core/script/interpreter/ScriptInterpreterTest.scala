@@ -1,5 +1,10 @@
 package org.scash.core.script.interpreter
 
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
+
 import org.scash.core.crypto.TxSigComponent
 import org.scash.core.currency.CurrencyUnits
 import org.scash.core.protocol.script._
@@ -13,9 +18,7 @@ import org.scalatest.{ FlatSpec, MustMatchers }
 import spray.json._
 
 import scala.io.Source
-/**
- * Created by chris on 1/6/16.
- */
+
 class ScriptInterpreterTest extends FlatSpec with MustMatchers {
   private def logger = BitcoinSLogger.logger
 

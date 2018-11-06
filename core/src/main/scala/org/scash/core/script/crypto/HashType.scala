@@ -1,13 +1,14 @@
 package org.scash.core.script.crypto
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
 
 import org.scash.core.crypto.{ ECDigitalSignature, TransactionSignatureSerializer }
 import org.scash.core.number.Int32
 import org.scash.core.util.Factory
 import scodec.bits.ByteVector
 
-/**
- * Created by chris on 1/18/16.
- */
 sealed trait HashType {
   def num: Int32
   def byte: Byte = num.bytes.last

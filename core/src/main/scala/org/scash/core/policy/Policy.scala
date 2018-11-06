@@ -1,6 +1,6 @@
 package org.scash.core.policy
 
-/*
+/**
  *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
  *   Copyright (c) 2018 Flores Lorca (MIT License)
  */
