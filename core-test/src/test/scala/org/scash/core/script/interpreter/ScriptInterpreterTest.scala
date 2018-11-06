@@ -6,7 +6,7 @@ import org.scash.core.protocol.script._
 import org.scash.core.protocol.transaction.{ Transaction, TransactionOutput }
 import org.scash.core.script.{ PreExecutionScriptProgram, ScriptProgram }
 import org.scash.core.script.flag.ScriptFlagFactory
-import org.scash.core.script.interpreter.testprotocol.CoreTestCase
+import org.scash.core.script.interpreter.testprotocol.ScripTestCase
 import org.scash.core.script.interpreter.testprotocol.CoreTestCaseProtocol._
 import org.scash.core.util._
 import org.scalatest.{ FlatSpec, MustMatchers }
@@ -18,7 +18,7 @@ import scala.io.Source
  */
 class ScriptInterpreterTest extends FlatSpec with MustMatchers {
   private def logger = BitcoinSLogger.logger
-  /*
+
   "ScriptInterpreter" must "evaluate all the scripts from the bitcoin core script_tests.json" in {
 
     val source = Source.fromURL(getClass.getResource("/script_tests.json"))
@@ -30,8 +30,8 @@ class ScriptInterpreterTest extends FlatSpec with MustMatchers {
    """.stripMargin*/
     val lines = try source.getLines.filterNot(_.isEmpty).map(_.trim) mkString "\n" finally source.close()
     val json = lines.parseJson
-    val testCasesOpt: Seq[Option[CoreTestCase]] = json.convertTo[Seq[Option[CoreTestCase]]]
-    val testCases: Seq[CoreTestCase] = testCasesOpt.flatten
+    val testCasesOpt: Seq[Option[ScripTestCase]] = json.convertTo[Seq[Option[ScripTestCase]]]
+    val testCases: Seq[ScripTestCase] = testCasesOpt.flatten
     for {
       testCase <- testCases
       (creditingTx, outputIndex) = TransactionTestUtil.buildCreditingTransaction(testCase.scriptPubKey)
@@ -40,7 +40,7 @@ class ScriptInterpreterTest extends FlatSpec with MustMatchers {
       val scriptPubKey = ScriptPubKey.fromAsm(testCase.scriptPubKey.asm)
       val flags = ScriptFlagFactory.fromList(testCase.flags)
       val output = TransactionOutput(CurrencyUnits.zero, scriptPubKey)
-      val txSigComponent = BaseTxSigComponent(
+      val txSigComponent = TxSigComponent(
         transaction = tx,
         inputIndex = inputIndex,
         output = output,
@@ -51,5 +51,5 @@ class ScriptInterpreterTest extends FlatSpec with MustMatchers {
       }
     }
   }
-  */
+
 }

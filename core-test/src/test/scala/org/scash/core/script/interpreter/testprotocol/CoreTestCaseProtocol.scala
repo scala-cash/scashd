@@ -19,9 +19,9 @@ object CoreTestCaseProtocol extends DefaultJsonProtocol {
 
   private def logger = BitcoinSLogger.logger
 
-  implicit object CoreTestCaseFormatter extends RootJsonFormat[Option[CoreTestCase]] {
+  implicit object CoreTestCaseFormatter extends RootJsonFormat[Option[ScripTestCase]] {
 
-    override def read(value: JsValue): Option[CoreTestCase] = {
+    override def read(value: JsValue): Option[ScripTestCase] = {
       logger.debug("Test case: " + value)
       val jsArray: JsArray = value match {
         case array: JsArray => array
@@ -41,7 +41,7 @@ object CoreTestCaseProtocol extends DefaultJsonProtocol {
         val flags = elements(2).convertTo[String]
         logger.info("Result: " + elements(3).convertTo[String])
         val expectedResult = ScriptResult(elements(3).convertTo[String])
-        Some(CoreTestCaseImpl(scriptSignature, scriptPubKey, flags,
+        Some(ScriptTestCaseImpl(scriptSignature, scriptPubKey, flags,
           expectedResult, "", elements.toString))
       } else if (elements.size == 5 && elements.head.isInstanceOf[JsArray]) {
         //means we have a witness as the first item in our array
@@ -56,7 +56,7 @@ object CoreTestCaseProtocol extends DefaultJsonProtocol {
         val flags = elements(3).convertTo[String]
         logger.info("Result: " + elements(4).convertTo[String])
         val expectedResult = ScriptResult(elements(4).convertTo[String])
-        Some(CoreTestCaseImpl(scriptSignature, scriptPubKey, flags,
+        Some(ScriptTestCaseImpl(scriptSignature, scriptPubKey, flags,
           expectedResult, "", elements.toString))
       } else if (elements.size == 5) {
         val scriptPubKeyBytes: ByteVector = parseScriptPubKey(elements(1))
@@ -67,7 +67,7 @@ object CoreTestCaseProtocol extends DefaultJsonProtocol {
         logger.info("Result: " + elements(3).convertTo[String])
         val expectedResult = ScriptResult(elements(3).convertTo[String])
         val comments = elements(4).convertTo[String]
-        Some(CoreTestCaseImpl(scriptSignature, scriptPubKey, flags,
+        Some(ScriptTestCaseImpl(scriptSignature, scriptPubKey, flags,
           expectedResult, comments, elements.toString))
       } else if (elements.size == 6 && elements.head.isInstanceOf[JsArray]) {
         val scriptPubKeyBytes: ByteVector = parseScriptPubKey(elements(2))
@@ -78,7 +78,7 @@ object CoreTestCaseProtocol extends DefaultJsonProtocol {
         logger.info("Result: " + elements(4).convertTo[String])
         val expectedResult = ScriptResult(elements(4).convertTo[String])
         val comments = elements(5).convertTo[String]
-        Some(CoreTestCaseImpl(scriptSignature, scriptPubKey, flags,
+        Some(ScriptTestCaseImpl(scriptSignature, scriptPubKey, flags,
           expectedResult, comments, elements.toString))
       } else None
     }
@@ -115,7 +115,7 @@ object CoreTestCaseProtocol extends DefaultJsonProtocol {
       compactSizeUInt.bytes ++ bytes
     }
 
-    override def write(coreTestCase: Option[CoreTestCase]): JsValue = ???
+    override def write(coreTestCase: Option[ScripTestCase]): JsValue = ???
   }
 
 }
