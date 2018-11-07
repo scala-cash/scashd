@@ -30,14 +30,6 @@ import scala.annotation.tailrec
 sealed abstract class ScriptInterpreter {
 
   private def logger = BitcoinSLogger.logger
-  /**
-   * Currently bitcoin cash limits the maximum number of non-push operations per script
-   * to 201
-   */
-  private lazy val maxScriptOps = 201
-
-  /** We cannot push an element larger than 520 bytes onto the stack */
-  private lazy val maxPushSize = 520
 
   /**
    * Runs an entire script though our script programming language and
@@ -144,8 +136,7 @@ sealed abstract class ScriptInterpreter {
 
     val scriptSig = scriptPubKeyExecutedProgram.txSignatureComponent.scriptSignature
     val scriptSigAsm: Seq[ScriptToken] = scriptSig.asm
-    //need to check if the scriptSig is push only as required by bitcoin core
-    //https://github.com/bitcoin/bitcoin/blob/528472111b4965b1a99c4bcf08ac5ec93d87f10f/src/script/interpreter.cpp#L1419
+    //need to check if the scriptSig is push only as required by bitcoin cash
     if (!BitcoinScriptUtil.isPushOnly(scriptSigAsm)) {
       ScriptProgram(scriptPubKeyExecutedProgram, ScriptErrorSigPushOnly)
     } else if (scriptPubKeyExecutedProgram.error.isDefined) {
@@ -176,7 +167,7 @@ sealed abstract class ScriptInterpreter {
     logger.trace("Stack: " + program.stack)
     logger.trace("Script: " + program.script)
     val scriptByteVector = BitcoinSUtil.toByteVector(program.script)
-    if (opCount > maxScriptOps && !program.isInstanceOf[ExecutedScriptProgram]) {
+    if (opCount > Consensus.maxScriptOps && !program.isInstanceOf[ExecutedScriptProgram]) {
       logger.error("We have reached the maximum amount of script operations allowed")
       logger.error("Here are the remaining operations in the script: " + program.script)
       loop(ScriptProgram(program, ScriptErrorOpCount), opCount)
@@ -194,7 +185,7 @@ sealed abstract class ScriptInterpreter {
         case p: ExecutedScriptProgram =>
           val countedOps = program.originalScript.map(BitcoinScriptUtil.countsTowardsScriptOpLimit(_)).count(_ == true)
           logger.trace("Counted ops: " + countedOps)
-          if (countedOps > maxScriptOps && p.error.isEmpty) {
+          if (countedOps > Consensus.maxScriptOps && p.error.isEmpty) {
             loop(ScriptProgram(p, ScriptErrorOpCount), opCount)
           } else p
 
@@ -206,7 +197,7 @@ sealed abstract class ScriptInterpreter {
               logger.error("Script is invalid even when a OP_VERIF or OP_VERNOTIF occurs in an unexecuted OP_IF branch")
               loop(ScriptProgram(p, ScriptErrorBadOpCode), opCount)
             //disabled splice operation
-            case _ if p.script.intersect(Seq(OP_CAT, OP_SPLIT, OP_NUM2BIN, OP_BIN2NUM)).nonEmpty =>
+            case _ if p.script.intersect(Seq(OP_SPLIT, OP_NUM2BIN, OP_BIN2NUM)).nonEmpty =>
               logger.error("Script is invalid because it contains a disabled splice operation")
               loop(ScriptProgram(p, ScriptErrorDisabledOpCode), opCount)
             //disabled bitwise operations
@@ -218,7 +209,7 @@ sealed abstract class ScriptInterpreter {
               logger.error("Script is invalid because it contains a disabled arithmetic operation")
               loop(ScriptProgram(p, ScriptErrorDisabledOpCode), opCount)
             //program cannot contain a push operation > 520 bytes
-            case _ if (p.script.exists(token => token.bytes.size > maxPushSize)) =>
+            case _ if (p.script.exists(token => token.bytes.size > Consensus.maxScriptElementSize)) =>
               logger.error("We have a script constant that is larger than 520 bytes, this is illegal: " + p.script)
               loop(ScriptProgram(p, ScriptErrorPushSize), opCount)
             //program stack size cannot be greater than 1000 elements
@@ -350,6 +341,7 @@ sealed abstract class ScriptInterpreter {
               logger.error("Undefined operation found which automatically fails the script: " + reservedOperation)
               loop(ScriptProgram(p, ScriptErrorBadOpCode), calcOpCount(opCount, reservedOperation))
             //splice operations
+            case OP_CAT :: t => loop(SpliceInterpreter.opCat(p), calcOpCount(opCount, OP_CAT))
             case OP_SIZE :: t => loop(SpliceInterpreter.opSize(p), calcOpCount(opCount, OP_SIZE))
 
             //locktime operations
@@ -382,12 +374,12 @@ sealed abstract class ScriptInterpreter {
   }
 
   /**
-   * Checks the validity of a transaction in accordance to bitcoin core's CheckTransaction function
-   * https://github.com/bitcoin/bitcoin/blob/f7a21dae5dbf71d5bc00485215e84e6f2b309d0a/src/main.cpp#L939.
+   * Checks the validity of a transaction in accordance to bitcoin ABC CheckTransaction function
+   * https://github.com/Bitcoin-ABC/bitcoin-abc/blob/6101540edd98cde12dd144265ccc83916cbfe7bb/src/consensus/tx_verify.cpp#L188
    */
   def checkTransaction(transaction: Transaction): Boolean = {
     val inputOutputsNotZero = !(transaction.inputs.isEmpty || transaction.outputs.isEmpty)
-    val txNotLargerThanBlock = transaction.bytes.size < Consensus.maxBlockSize
+    val txNotLargerThanBlock = transaction.bytes.size < Consensus.maxTxSize
     val outputsSpendValidAmountsOfMoney = !transaction.outputs.exists(o =>
       o.value < CurrencyUnits.zero || o.value > Consensus.maxMoney)
 

@@ -45,8 +45,8 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
    * which is how bitcoin core handles this
    */
   def countsTowardsScriptOpLimit(token: ScriptToken): Boolean = token match {
-    case scriptOp: ScriptOperation if (scriptOp.opCode > OP_16.opCode) => true
-    case _: ScriptToken => false
+    case scriptOp: ScriptOperation => scriptOp.opCode > OP_16.opCode
+    case _ => false
   }
 
   /**

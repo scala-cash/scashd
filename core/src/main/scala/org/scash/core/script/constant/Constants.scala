@@ -38,6 +38,8 @@ trait ScriptOperation extends ScriptToken {
 sealed abstract class ScriptConstant extends ScriptToken {
   /** Returns if the [[ScriptConstant]] is encoded in the shortest possible way. */
   def isShortestEncoding: Boolean = BitcoinScriptUtil.isShortestEncoding(this)
+
+  def ++(that: ScriptConstant) = ScriptConstant(bytes ++ that.bytes)
 }
 
 /** Represents a [[ScriptNumber]] in the Script language. */

@@ -823,6 +823,7 @@
  ["", "CAT", "P2SH,STRICTENC", "INVALID_STACK_OPERATION", "CAT, empty stack"],
  ["'a'", "CAT", "P2SH,STRICTENC", "INVALID_STACK_OPERATION", "CAT, one parameter"],
  ["'abcd' 'efgh'", "CAT 'abcdefgh' EQUAL", "P2SH,STRICTENC", "OK"],
+ ["'abcd' '15'", "CAT 'abcd15' EQUAL", "P2SH,STRICTENC", "OK"],
  ["'' ''", "CAT '' EQUAL", "P2SH,STRICTENC", "OK", "CAT two empty strings"],
  ["'abc' ''", "CAT 'abc' EQUAL", "P2SH,STRICTENC", "OK", "CAT with empty string"],
  ["'' 'def'", "CAT 'def' EQUAL", "P2SH,STRICTENC", "OK", "CAT with empty string"],
