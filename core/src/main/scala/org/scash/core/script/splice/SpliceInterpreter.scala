@@ -2,17 +2,23 @@ package org.scash.core.script.splice
 /**
  *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
  *   Copyright (c) 2018 Flores Lorca (MIT License)
+ *   https://github.com/scala-cash/scash
  */
 import org.scash.core.consensus.Consensus
 import org.scash.core.script.constant._
 import org.scash.core.script.result.{ ScriptErrorInvalidStackOperation, ScriptErrorPushSize, ScriptErrorUnknownError }
 import org.scash.core.script.ScriptProgram
-import org.scash.core.util.{ BitcoinSLogger, BitcoinSUtil }
+import org.scash.core.util.BitcoinSLogger
 
 sealed abstract class SpliceInterpreter {
 
   private def logger = BitcoinSLogger.logger
 
+  /**
+   * Concatenates two strings
+   * Spec info
+   * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md]]
+   */
   def opCat(program: ScriptProgram): ScriptProgram = {
     if (program.stack.size < 2) {
       logger.error("Must have at least 2 elements on the stack for OP_CAT")

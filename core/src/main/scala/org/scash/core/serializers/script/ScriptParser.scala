@@ -48,8 +48,6 @@ sealed abstract class ScriptParser extends Factory[List[ScriptToken]] {
   private def parse(str: String): List[ScriptToken] = {
     @tailrec
     def loop(operations: List[String], accum: ByteVector): ByteVector = {
-      /*      logger.debug("Attempting to parse: " + operations.headOption)
-      logger.debug("Accum: " + accum)*/
       operations match {
         //for parsing strings like 'Az', need to remove single quotes
         case h +: t if (h.size > 0 && h.head == ''' && h.last == ''') =>

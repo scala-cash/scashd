@@ -1,15 +1,17 @@
 package org.scash.core.script.splice
-
-import org.scash.core.script.{ ExecutedScriptProgram, ScriptProgram }
-import org.scash.core.script.bitwise.OP_EQUAL
-import org.scash.core.script.constant._
-import org.scash.core.script.result.ScriptErrorInvalidStackOperation
-import org.scash.core.util.TestUtil
-import org.scalatest.{ FlatSpec, MustMatchers }
-
 /**
- * Created by chris on 2/4/16.
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ *   https://github.com/scala-cash/scash
  */
+import org.scash.core.script.{ ExecutedScriptProgram, ScriptProgram }
+import org.scash.core.script.constant._
+import org.scash.core.script.result.{ ScriptError, ScriptErrorInvalidStackOperation, ScriptErrorPushSize }
+import org.scash.core.util.{ BitcoinSUtil, TestUtil }
+import org.scalatest.{ FlatSpec, MustMatchers }
+import org.scash.core.consensus.Consensus
+import scodec.bits.ByteVector
+
 class SpliceInterpreterTest extends FlatSpec with MustMatchers {
   val SI = SpliceInterpreter
 
@@ -23,7 +25,7 @@ class SpliceInterpreterTest extends FlatSpec with MustMatchers {
 
   }
 
-  it must "deterine the size of script number 0 correctly" in {
+  it must "determine the size of script number 0 correctly" in {
     val stack = List(ScriptNumber.zero)
     val script = List(OP_SIZE)
     val program = ScriptProgram(TestUtil.testProgram, stack, script)
@@ -65,7 +67,48 @@ class SpliceInterpreterTest extends FlatSpec with MustMatchers {
     val script = List(OP_SIZE)
     val program = ScriptProgram(TestUtil.testProgramExecutionInProgress, stack, script)
     val newProgram = SI.opSize(program)
-    newProgram.isInstanceOf[ExecutedScriptProgram] must be(true)
-    newProgram.asInstanceOf[ExecutedScriptProgram].error must be(Some(ScriptErrorInvalidStackOperation))
+    (newProgram match {
+      case e: ExecutedScriptProgram => {
+        e.error must be(Some(ScriptErrorInvalidStackOperation))
+        true
+      }
+      case _ => false
+    }) must be(true)
+  }
+
+  def str2ByteVector(str: String) =
+    BitcoinSUtil.decodeHex(BitcoinSUtil.flipEndianness(ByteVector(str.getBytes)))
+
+  it must "evaluate an OP_CAT with empty elements correctly" in {
+    val r = str2ByteVector("myString")
+
+    val stack = List(ScriptConstant(r), ScriptConstant.empty)
+    val stack2 = List(ScriptConstant.empty, ScriptConstant(r))
+    val script = List(OP_CAT)
+
+    List(stack, stack2)
+      .map(ScriptProgram(TestUtil.testProgramExecutionInProgress, _, script))
+      .map(SI.opCat).map(_.stack.head.bytes must be(r))
+  }
+
+  def checkOpError(
+    stack: List[ScriptToken],
+    op: ScriptOperation,
+    ex: ScriptError)(
+    interpreter: ScriptProgram => ScriptProgram) = {
+    val p = ScriptProgram(TestUtil.testProgramExecutionInProgress, stack, List(op))
+    interpreter(p) match {
+      case e: ExecutedScriptProgram => e.error must be(Some(ex))
+      case _ => assert(false)
+    }
+  }
+
+  it must "evaluate an OP_CAT that is bigger than `maxScriptElementSize` and fail with ScriptErrorPushSize" in {
+    val stack = List(
+      ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(1)),
+      ScriptConstant("0xaf"))
+
+    checkOpError(stack, OP_CAT, ScriptErrorPushSize)(SI.opCat)
+    checkOpError(stack.reverse, OP_CAT, ScriptErrorPushSize)(SI.opCat)
   }
 }

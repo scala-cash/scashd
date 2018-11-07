@@ -16,6 +16,6 @@ class ReservedOperationsFactoryTest extends FlatSpec with MustMatchers {
     ReservedOperation("b0") must be(Some(OP_NOP1))
   }
   it must "find an undefined operation from its hex value" in {
-    ReservedOperation("ba").isDefined must be(true)
+    ReservedOperation("b9").isDefined must be(true)
   }
 }

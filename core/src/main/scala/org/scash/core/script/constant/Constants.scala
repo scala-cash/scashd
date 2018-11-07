@@ -339,6 +339,7 @@ object ScriptConstant extends Factory[ScriptConstant] {
   lazy val negativeZero = ScriptConstant("80")
   lazy val negativeOne = ScriptConstant("81")
 
+  val empty = ScriptConstant(ByteVector.empty)
   /** Creates a [[ScriptConstant]] from a sequence of bytes. */
   def fromBytes(bytes: ByteVector): ScriptConstant = ScriptConstantImpl(bytes)
 
