@@ -8,7 +8,7 @@ import org.scash.core.consensus.Consensus
 import org.scash.core.script.constant._
 import org.scash.core.script.result.{ ScriptErrorInvalidSplitRange, ScriptErrorInvalidStackOperation, ScriptErrorPushSize, ScriptErrorUnknownError }
 import org.scash.core.script.ScriptProgram
-import org.scash.core.script.flag.{ ScriptFlagUtil, ScriptVerifyMinimalData }
+import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.util.BitcoinSLogger
 
 import scala.util.{ Failure, Success }

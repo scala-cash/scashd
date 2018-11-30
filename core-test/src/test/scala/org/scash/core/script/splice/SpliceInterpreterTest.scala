@@ -8,11 +8,14 @@ import org.scash.core.script.{ ExecutedScriptProgram, ScriptProgram }
 import org.scash.core.script.constant._
 import org.scash.core.script.result.{ ScriptError, ScriptErrorInvalidStackOperation, ScriptErrorPushSize }
 import org.scash.core.util.{ BitcoinSUtil, TestUtil }
-import org.scalatest.{ FlatSpec, MustMatchers }
+import org.scalatest.{ FlatSpec }
+import org.scash.core.TestHelpers
 import org.scash.core.consensus.Consensus
+
+import scodec.bits._
 import scodec.bits.ByteVector
 
-class SpliceInterpreterTest extends FlatSpec with MustMatchers {
+class SpliceInterpreterTest extends FlatSpec with TestHelpers {
   val SI = SpliceInterpreter
 
   "SpliceInterpreter" must "evaluate an OP_SIZE on OP_0 correctly" in {
@@ -91,18 +94,6 @@ class SpliceInterpreterTest extends FlatSpec with MustMatchers {
       .map(SI.opCat).map(_.stack.head.bytes must be(r))
   }
 
-  def checkOpError(
-    stack: List[ScriptToken],
-    op: ScriptOperation,
-    ex: ScriptError)(
-    interpreter: ScriptProgram => ScriptProgram) = {
-    val p = ScriptProgram(TestUtil.testProgramExecutionInProgress, stack, List(op))
-    interpreter(p) match {
-      case e: ExecutedScriptProgram => e.error must be(Some(ex))
-      case _ => assert(false)
-    }
-  }
-
   it must "evaluate an OP_CAT that is bigger than `maxScriptElementSize` and fail with ScriptErrorPushSize" in {
     val stack = List(
       ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(1)),
@@ -110,5 +101,24 @@ class SpliceInterpreterTest extends FlatSpec with MustMatchers {
 
     checkOpError(stack, OP_CAT, ScriptErrorPushSize)(SI.opCat)
     checkOpError(stack.reverse, OP_CAT, ScriptErrorPushSize)(SI.opCat)
+  }
+
+  val inputs = List(
+    (ScriptConstant.empty, ScriptConstant.empty, ScriptConstant.empty),
+    (ScriptConstant.zero, ScriptConstant.zero, ScriptConstant(hex"0x0000")),
+    (ScriptConstant("0xab"), ScriptConstant("0xcd"), ScriptConstant("0xabcd")),
+    (ScriptConstant("0xabcdef"), ScriptConstant("0x12345678"), ScriptConstant("0xabcdef12345678")))
+
+  it must "evaluate all OP_CAT successfully" in {
+    inputs.map {
+      case (a, b, ex) =>
+        checkBinaryOp(a, b, OP_CAT, List(ex))(SI.opCat)
+
+        //Check empty concats
+        checkBinaryOp(a, ScriptConstant.empty, OP_CAT, List(a))(SI.opCat)
+        checkBinaryOp(b, ScriptConstant.empty, OP_CAT, List(b))(SI.opCat)
+        checkBinaryOp(ScriptConstant.empty, a, OP_CAT, List(a))(SI.opCat)
+        checkBinaryOp(ScriptConstant.empty, b, OP_CAT, List(b))(SI.opCat)
+    }
   }
 }
