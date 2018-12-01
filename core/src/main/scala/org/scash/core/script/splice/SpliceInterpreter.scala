@@ -5,11 +5,12 @@ package org.scash.core.script.splice
  *   https://github.com/scala-cash/scash
  */
 import org.scash.core.consensus.Consensus
-import org.scash.core.script.constant._
+import org.scash.core.script.constant.{ ScriptNumber, _ }
 import org.scash.core.script.result.{ ScriptErrorInvalidSplitRange, ScriptErrorInvalidStackOperation, ScriptErrorPushSize, ScriptErrorUnknownError }
 import org.scash.core.script.ScriptProgram
 import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.util.BitcoinSLogger
+import scodec.bits.ByteVector
 
 import scala.util.{ Failure, Success }
 
@@ -59,7 +60,7 @@ sealed abstract class SpliceInterpreter {
           val data = p.stack(1).bytes
           if (pos >= 0 && pos.toLong <= data.size) {
             val (n1, n2) = data.splitAt(pos)
-            ScriptProgram(p, List(ScriptConstant(n2), ScriptConstant(n1)), p.script.tail)
+            ScriptProgram(p, List(ScriptConstant(n2), ScriptConstant(n1)) ::: p.stack.tail.tail, p.script.tail)
           } else ScriptProgram(p, ScriptErrorInvalidSplitRange)
         case Failure(_) => ScriptProgram(p, ScriptErrorUnknownError)
       }
