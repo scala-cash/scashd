@@ -130,15 +130,4 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
         (SI.opSplit _ andThen SI.opCat)(p).stack must be(List(ScriptConstant(a.bytes ++ b.bytes)))
     }
   }
-
-  it must "cat and split successfully" in {
-    inputs.map {
-      case (a, b) =>
-        val p = ScriptProgram(TestUtil.testProgramExecutionInProgress, List(b, a, ScriptNumber(a.size)), List(OP_CAT, OP_SPLIT))
-        val ss = SI.opCat(p)
-        val pn = ScriptProgram(TestUtil.testProgramExecutionInProgress, ss.stack.reverse, ss.script)
-        val sq = SI.opSplit(pn)
-        sq.stack must be(List(a, b).reverse)
-    }
-  }
 }
