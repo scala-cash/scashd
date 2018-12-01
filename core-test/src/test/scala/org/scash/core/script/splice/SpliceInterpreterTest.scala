@@ -6,12 +6,11 @@ package org.scash.core.script.splice
  */
 import org.scash.core.script.{ ExecutedScriptProgram, ScriptProgram }
 import org.scash.core.script.constant._
-import org.scash.core.script.result.{ ScriptErrorInvalidStackOperation, ScriptErrorPushSize }
+import org.scash.core.script.result.{ ScriptErrorInvalidSplitRange, ScriptErrorInvalidStackOperation, ScriptErrorPushSize }
 import org.scash.core.util.{ BitcoinSUtil, TestUtil }
 import org.scalatest.FlatSpec
 import org.scash.core.TestHelpers
 import org.scash.core.consensus.Consensus
-
 import scodec.bits.ByteVector
 
 class SpliceInterpreterTest extends FlatSpec with TestHelpers {
@@ -128,6 +127,17 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
           List(ScriptNumber(a.size), ScriptConstant(a.bytes ++ b.bytes)),
           List(OP_SPLIT, OP_CAT))
         (SI.opSplit _ andThen SI.opCat)(p).stack must be(List(ScriptConstant(a.bytes ++ b.bytes)))
+    }
+  }
+
+  it must "split and fail due to invalid range" in {
+    inputs.map {
+      case (a, b) =>
+        checkOpError(List(ScriptNumber(a.size + 1), a), OP_SPLIT, ScriptErrorInvalidSplitRange)(SI.opSplit)
+        checkOpError(List(ScriptNumber(b.size + 1), b), OP_SPLIT, ScriptErrorInvalidSplitRange)(SI.opSplit)
+        checkOpError(List(ScriptNumber(ScriptConstant(a.bytes ++ b.bytes).size + 1), ScriptConstant(a.bytes ++ b.bytes)), OP_SPLIT, ScriptErrorInvalidSplitRange)(SI.opSplit)
+        checkOpError(List(ScriptNumber(-1), a), OP_SPLIT, ScriptErrorInvalidSplitRange)(SI.opSplit)
+
     }
   }
 }
