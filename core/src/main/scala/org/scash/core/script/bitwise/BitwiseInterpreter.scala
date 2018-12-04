@@ -9,6 +9,8 @@ import org.scash.core.script.control.{ ControlOperationsInterpreter, OP_VERIFY }
 import org.scash.core.script.result._
 import org.scash.core.script.{ ExecutedScriptProgram, ExecutionInProgressScriptProgram, PreExecutionScriptProgram, ScriptProgram }
 import org.scash.core.util.BitcoinSLogger
+import org.scash.core.script.bitwise._
+import scodec.bits.ByteVector
 
 sealed abstract class BitwiseInterpreter {
   private def logger = BitcoinSLogger.logger
@@ -56,13 +58,23 @@ sealed abstract class BitwiseInterpreter {
     }
   }
 
-  def opAnd(program: ScriptProgram): ScriptProgram =
+  /**
+   * Bitwise operands added on may 2018 HF
+   * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#bitwise-logic]]
+   */
+  private def opBitWise(program: => ScriptProgram)(f: (ByteVector, ByteVector) => ByteVector) =
     script.checkBinary(program)
       .orElse(script.checkSameSize(program))
       .getOrElse {
-        val r = ScriptConstant(program.stack.head.bytes & program.stack(1).bytes)
+        val r = ScriptConstant(f(program.stack.head.bytes, program.stack(1).bytes))
         ScriptProgram(program, r +: program.stack.drop(2), program.script.tail)
       }
+
+  /** [[OP_AND]] Boolean and between each bit in the operands**/
+  def opAnd(program: ScriptProgram): ScriptProgram = opBitWise(program)(_ & _)
+
+  /** [[OP_OR]] Boolean and between each bit in the operands**/
+  def opOr(program: ScriptProgram): ScriptProgram = opBitWise(program)(_ | _)
 }
 
 object BitwiseInterpreter extends BitwiseInterpreter

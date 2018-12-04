@@ -263,7 +263,7 @@ sealed abstract class ScriptInterpreter {
             //bitwise operations
             case OP_EQUAL :: t => loop(BitwiseInterpreter.opEqual(p), calcOpCount(opCount, OP_EQUAL))
             case OP_AND :: t => loop(BitwiseInterpreter.opAnd(p), calcOpCount(opCount, OP_AND))
-            //case OP_OR :: t => loop(BitwiseInterpreter.opOr(p), calcOpCount(opCount, OP_OR))
+            case OP_OR :: t => loop(BitwiseInterpreter.opOr(p), calcOpCount(opCount, OP_OR))
             //case OP_XOR :: t => loop(BitwiseInterpreter.opXor(p), calcOpCount(opCount, OP_XOR))
 
             case OP_EQUALVERIFY :: t => loop(BitwiseInterpreter.opEqualVerify(p), calcOpCount(opCount, OP_EQUALVERIFY))

@@ -98,31 +98,37 @@ class BitwiseInterpreterTest extends FlatSpec with TestHelpers {
     newProgram.asInstanceOf[ExecutedScriptProgram].error must be(Some(ScriptErrorInvalidStackOperation))
   }
 
-  it must "evaluate all AND tests" in {
+  def bitwiseOperations(op: ScriptOperation, ex: ScriptToken)(interpreter: ScriptProgram => ScriptProgram) = {
     val empty = ScriptConstant.empty
     val zeroes = ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0))
     val ones = ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0xff))
-
-    checkBinaryOp(empty, empty, OP_AND, List(empty))(BI.opAnd)
-    checkBinaryOp(zeroes, zeroes, OP_AND, List(zeroes))(BI.opAnd)
-    checkBinaryOp(ones, ones, OP_AND, List(ones))(BI.opAnd)
-
     val a = input.a.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
     val b = input.b.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
-    val and = input.and.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
 
-    checkBinaryOp(ScriptConstant(a), ScriptConstant(b), OP_AND, List(ScriptConstant(and)))(BI.opAnd)
+    checkBinaryOp(empty, empty, op, List(empty))(interpreter)
+    checkBinaryOp(zeroes, zeroes, op, List(zeroes))(interpreter)
+    checkBinaryOp(ones, ones, op, List(ones))(interpreter)
+    checkBinaryOp(ScriptConstant(a), ScriptConstant(b), op, List(ex))(interpreter)
+  }
+
+  it must "evaluate all OP_AND tests" in {
+    bitwiseOperations(OP_AND, ScriptConstant(input.and.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))))(BI.opAnd)
+  }
+  it must "evaluate all OP_OR tests" in {
+    bitwiseOperations(OP_OR, ScriptConstant(input.or.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))))(BI.opOr)
   }
 
   it must "check error conditions" in {
-    checkOpError(List(ScriptConstant.empty), OP_AND, ScriptErrorInvalidStackOperation)(BI.opAnd)
-    checkOpError(List(ScriptNumber.zero), OP_AND, ScriptErrorInvalidStackOperation)(BI.opAnd)
-    checkOpError(List(ScriptNumber(0xabcdef)), OP_AND, ScriptErrorInvalidStackOperation)(BI.opAnd)
+    List((OP_AND, BI.opAnd _), (OP_OR, BI.opOr _)).map {
+      case (op, interpreter) =>
+        checkOpError(List(ScriptConstant.empty), op, ScriptErrorInvalidStackOperation)(interpreter)
+        checkOpError(List(ScriptNumber.zero), op, ScriptErrorInvalidStackOperation)(interpreter)
+        checkOpError(List(ScriptNumber(0xabcdef)), op, ScriptErrorInvalidStackOperation)(interpreter)
 
-    checkOpError(List(ScriptConstant.empty, ScriptNumber(0xcd)), OP_AND, ScriptErrorInvalidOperandSize)(BI.opAnd)
-    checkOpError(List(ScriptNumber(0xcd), ScriptConstant.empty), OP_AND, ScriptErrorInvalidOperandSize)(BI.opAnd)
-    checkOpError(List(ScriptNumber(0xabcdef), ScriptNumber(0xcd)), OP_AND, ScriptErrorInvalidOperandSize)(BI.opAnd)
-    checkOpError(List(ScriptNumber(0xcd), ScriptNumber(0xabcdef)), OP_AND, ScriptErrorInvalidOperandSize)(BI.opAnd)
-
+        checkOpError(List(ScriptConstant.empty, ScriptNumber(0xcd)), op, ScriptErrorInvalidOperandSize)(interpreter)
+        checkOpError(List(ScriptNumber(0xcd), ScriptConstant.empty), op, ScriptErrorInvalidOperandSize)(interpreter)
+        checkOpError(List(ScriptNumber(0xabcdef), ScriptNumber(0xcd)), op, ScriptErrorInvalidOperandSize)(interpreter)
+        checkOpError(List(ScriptNumber(0xcd), ScriptNumber(0xabcdef)), op, ScriptErrorInvalidOperandSize)(interpreter)
+    }
   }
 }
