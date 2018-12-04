@@ -73,8 +73,11 @@ sealed abstract class BitwiseInterpreter {
   /** [[OP_AND]] Boolean and between each bit in the operands**/
   def opAnd(program: ScriptProgram): ScriptProgram = opBitWise(program)(_ & _)
 
-  /** [[OP_OR]] Boolean and between each bit in the operands**/
+  /** [[OP_OR]] Boolean or between each bit in the operands**/
   def opOr(program: ScriptProgram): ScriptProgram = opBitWise(program)(_ | _)
+
+  /** [[OP_XOR]] Boolean xor between each bit in the operands**/
+  def opXor(program: ScriptProgram): ScriptProgram = opBitWise(program)(_ ^ _)
 }
 
 object BitwiseInterpreter extends BitwiseInterpreter

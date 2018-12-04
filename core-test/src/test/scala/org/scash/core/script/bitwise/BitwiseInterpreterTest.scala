@@ -98,28 +98,46 @@ class BitwiseInterpreterTest extends FlatSpec with TestHelpers {
     newProgram.asInstanceOf[ExecutedScriptProgram].error must be(Some(ScriptErrorInvalidStackOperation))
   }
 
-  def bitwiseOperations(op: ScriptOperation, ex: ScriptToken)(interpreter: ScriptProgram => ScriptProgram) = {
+  def bitwiseOperations(a: ScriptToken, b: ScriptToken, op: ScriptOperation, ex: ScriptToken)(interpreter: ScriptProgram => ScriptProgram) = {
     val empty = ScriptConstant.empty
     val zeroes = ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0))
     val ones = ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0xff))
-    val a = input.a.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
-    val b = input.b.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+
+    op match {
+      case OP_XOR => checkBinaryOp(ones, ones, op, List(zeroes))(interpreter)
+      case _ => checkBinaryOp(ones, ones, op, List(ones))(interpreter)
+    }
 
     checkBinaryOp(empty, empty, op, List(empty))(interpreter)
     checkBinaryOp(zeroes, zeroes, op, List(zeroes))(interpreter)
-    checkBinaryOp(ones, ones, op, List(ones))(interpreter)
-    checkBinaryOp(ScriptConstant(a), ScriptConstant(b), op, List(ex))(interpreter)
+    checkBinaryOp(a, b, op, List(ex))(interpreter)
+    checkBinaryOp(b, a, op, List(ex))(interpreter)
   }
 
   it must "evaluate all OP_AND tests" in {
-    bitwiseOperations(OP_AND, ScriptConstant(input.and.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))))(BI.opAnd)
+    val a = input.a.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    val b = input.b.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    val and = input.and.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    bitwiseOperations(ScriptConstant(a), ScriptConstant(b), OP_AND, ScriptConstant(and))(BI.opAnd)
   }
+
   it must "evaluate all OP_OR tests" in {
-    bitwiseOperations(OP_OR, ScriptConstant(input.or.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))))(BI.opOr)
+    val a = input.a.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    val b = input.b.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    val or = input.or.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    bitwiseOperations(ScriptConstant(a), ScriptConstant(b), OP_OR, ScriptConstant(or))(BI.opOr)
+  }
+
+  it must "evaluate all OP_XOR tests" in {
+    val a = input.or.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    val b = input.and.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    // A ^ B = (A | B) & ~(A & B)
+    val xor = a.zipWith(b) { case (o, a) => (o & (~a)).toByte }
+    bitwiseOperations(ScriptConstant(a), ScriptConstant(b), OP_XOR, ScriptConstant(xor))(BI.opXor)
   }
 
   it must "check error conditions" in {
-    List((OP_AND, BI.opAnd _), (OP_OR, BI.opOr _)).map {
+    List((OP_AND, BI.opAnd _), (OP_OR, BI.opOr _), (OP_XOR, BI.opXor _)).map {
       case (op, interpreter) =>
         checkOpError(List(ScriptConstant.empty), op, ScriptErrorInvalidStackOperation)(interpreter)
         checkOpError(List(ScriptNumber.zero), op, ScriptErrorInvalidStackOperation)(interpreter)
