@@ -201,7 +201,7 @@ sealed abstract class ScriptInterpreter {
               logger.error("Script is invalid because it contains a disabled splice operation")
               loop(ScriptProgram(p, ScriptErrorDisabledOpCode), opCount)
             //disabled bitwise operations
-            case _ if p.script.intersect(Seq(OP_INVERT, OP_AND, OP_OR, OP_XOR)).nonEmpty =>
+            case _ if p.script.intersect(Seq(OP_INVERT)).nonEmpty =>
               logger.error("Script is invalid because it contains a disabled bitwise operation")
               loop(ScriptProgram(p, ScriptErrorDisabledOpCode), opCount)
             //disabled arithmetic operations
@@ -262,6 +262,9 @@ sealed abstract class ScriptInterpreter {
 
             //bitwise operations
             case OP_EQUAL :: t => loop(BitwiseInterpreter.opEqual(p), calcOpCount(opCount, OP_EQUAL))
+            case OP_AND :: t => loop(BitwiseInterpreter.opAnd(p), calcOpCount(opCount, OP_AND))
+            //case OP_OR :: t => loop(BitwiseInterpreter.opOr(p), calcOpCount(opCount, OP_OR))
+            //case OP_XOR :: t => loop(BitwiseInterpreter.opXor(p), calcOpCount(opCount, OP_XOR))
 
             case OP_EQUALVERIFY :: t => loop(BitwiseInterpreter.opEqualVerify(p), calcOpCount(opCount, OP_EQUALVERIFY))
 

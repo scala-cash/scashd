@@ -1,14 +1,15 @@
 package org.scash.core.script.bitwise
-
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
+import org.scash.core.script
 import org.scash.core.script.constant._
 import org.scash.core.script.control.{ ControlOperationsInterpreter, OP_VERIFY }
 import org.scash.core.script.result._
 import org.scash.core.script.{ ExecutedScriptProgram, ExecutionInProgressScriptProgram, PreExecutionScriptProgram, ScriptProgram }
 import org.scash.core.util.BitcoinSLogger
 
-/**
- * Created by chris on 1/6/16.
- */
 sealed abstract class BitwiseInterpreter {
   private def logger = BitcoinSLogger.logger
   /** Returns 1 if the inputs are exactly equal, 0 otherwise. */
@@ -54,6 +55,14 @@ sealed abstract class BitwiseInterpreter {
       ScriptProgram(program, ScriptErrorInvalidStackOperation)
     }
   }
+
+  def opAnd(program: ScriptProgram): ScriptProgram =
+    script.checkBinary(program)
+      .orElse(script.checkSameSize(program))
+      .getOrElse {
+        val r = ScriptNumber(program.stack.head.bytes & program.stack(1).bytes)
+        ScriptProgram(program, r +: program.stack.drop(2), program.script.tail)
+      }
 }
 
 object BitwiseInterpreter extends BitwiseInterpreter

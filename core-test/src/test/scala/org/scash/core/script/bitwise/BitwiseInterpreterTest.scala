@@ -1,16 +1,16 @@
 package org.scash.core.script.bitwise
-
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
 import org.scash.core.script.{ ExecutedScriptProgram, ScriptProgram }
-import org.scash.core.script.arithmetic.OP_NUMEQUAL
 import org.scash.core.script.constant._
 import org.scash.core.script.result.ScriptErrorInvalidStackOperation
 import org.scash.core.util.TestUtil
-import org.scalatest.{ FlatSpec, MustMatchers }
+import org.scalatest.FlatSpec
+import org.scash.core.TestHelpers
 
-/**
- * Created by chris on 1/6/16.
- */
-class BitwiseInterpreterTest extends FlatSpec with MustMatchers {
+class BitwiseInterpreterTest extends FlatSpec with TestHelpers {
   private val pubKeyHash = ScriptConstant("5238C71458E464D9FF90299ABCA4A1D7B9CB76AB".toLowerCase)
   val BI = BitwiseInterpreter
   "BitwiseInterpreter" must "evaluate OP_EQUAL" in {

@@ -5,12 +5,12 @@ package org.scash.core.script.splice
  *   https://github.com/scala-cash/scash
  */
 import org.scash.core.consensus.Consensus
+import org.scash.core.script
 import org.scash.core.script.constant.{ ScriptNumber, _ }
 import org.scash.core.script.result.{ ScriptErrorInvalidSplitRange, ScriptErrorInvalidStackOperation, ScriptErrorPushSize, ScriptErrorUnknownError }
 import org.scash.core.script.ScriptProgram
 import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.util.BitcoinSLogger
-import scodec.bits.ByteVector
 
 import scala.util.{ Failure, Success }
 
@@ -18,19 +18,13 @@ sealed abstract class SpliceInterpreter {
 
   private def logger = BitcoinSLogger.logger
 
-  private def isInvalid(p: ScriptProgram): Option[ScriptProgram] =
-    if (p.stack.size < 2) {
-      logger.error("Must have at least 2 elements on the stack")
-      Some(ScriptProgram(p, ScriptErrorInvalidStackOperation))
-    } else None
-
   /**
    * Concatenates two strings
    * Spec info
    * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#op_cat]]
    */
   def opCat(p: ScriptProgram): ScriptProgram =
-    isInvalid(p).getOrElse {
+    script.checkBinary(p).getOrElse {
       val v1 = p.stack(1)
       val v2 = p.stack(0)
       if (v1.bytes.size + v2.bytes.size > Consensus.maxScriptElementSize) {
@@ -52,7 +46,7 @@ sealed abstract class SpliceInterpreter {
    * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#op_split]]
    */
   def opSplit(p: ScriptProgram): ScriptProgram =
-    isInvalid(p).getOrElse {
+    script.checkBinary(p).getOrElse {
       //Split point is congruent
       ScriptNumber(p.stack(0).bytes, ScriptFlagUtil.requireMinimalData(p.flags)) match {
         case Success(l) =>
