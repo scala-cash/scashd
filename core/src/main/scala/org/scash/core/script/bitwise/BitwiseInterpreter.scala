@@ -60,7 +60,7 @@ sealed abstract class BitwiseInterpreter {
     script.checkBinary(program)
       .orElse(script.checkSameSize(program))
       .getOrElse {
-        val r = ScriptNumber(program.stack.head.bytes & program.stack(1).bytes)
+        val r = ScriptConstant(program.stack.head.bytes & program.stack(1).bytes)
         ScriptProgram(program, r +: program.stack.drop(2), program.script.tail)
       }
 }

@@ -5,12 +5,23 @@ package org.scash.core.script.bitwise
  */
 import org.scash.core.script.{ ExecutedScriptProgram, ScriptProgram }
 import org.scash.core.script.constant._
-import org.scash.core.script.result.ScriptErrorInvalidStackOperation
+import org.scash.core.script.result.{ ScriptErrorInvalidOperandSize, ScriptErrorInvalidStackOperation }
 import org.scash.core.util.TestUtil
 import org.scalatest.FlatSpec
 import org.scash.core.TestHelpers
+import org.scash.core.consensus.Consensus
+import scodec.bits.ByteVector
+
+import scala.io.Source
+import BitWiseJsonProtocol._
+import spray.json._
 
 class BitwiseInterpreterTest extends FlatSpec with TestHelpers {
+  val input = Source.fromURL(getClass.getResource("/bitwise.json"))
+    .mkString
+    .parseJson
+    .convertTo[BitWiseCase]
+
   private val pubKeyHash = ScriptConstant("5238C71458E464D9FF90299ABCA4A1D7B9CB76AB".toLowerCase)
   val BI = BitwiseInterpreter
   "BitwiseInterpreter" must "evaluate OP_EQUAL" in {
@@ -85,5 +96,33 @@ class BitwiseInterpreterTest extends FlatSpec with TestHelpers {
     val newProgram = BI.opEqualVerify(program)
     newProgram.isInstanceOf[ExecutedScriptProgram] must be(true)
     newProgram.asInstanceOf[ExecutedScriptProgram].error must be(Some(ScriptErrorInvalidStackOperation))
+  }
+
+  it must "evaluate all AND tests" in {
+    val empty = ScriptConstant.empty
+    val zeroes = ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0))
+    val ones = ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0xff))
+
+    checkBinaryOp(empty, empty, OP_AND, List(empty))(BI.opAnd)
+    checkBinaryOp(zeroes, zeroes, OP_AND, List(zeroes))(BI.opAnd)
+    checkBinaryOp(ones, ones, OP_AND, List(ones))(BI.opAnd)
+
+    val a = input.a.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    val b = input.b.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+    val and = input.and.foldLeft(ByteVector.empty)((r, s) => r ++ ByteVector.fromValidHex(s))
+
+    checkBinaryOp(ScriptConstant(a), ScriptConstant(b), OP_AND, List(ScriptConstant(and)))(BI.opAnd)
+  }
+
+  it must "check error conditions" in {
+    checkOpError(List(ScriptConstant.empty), OP_AND, ScriptErrorInvalidStackOperation)(BI.opAnd)
+    checkOpError(List(ScriptNumber.zero), OP_AND, ScriptErrorInvalidStackOperation)(BI.opAnd)
+    checkOpError(List(ScriptNumber(0xabcdef)), OP_AND, ScriptErrorInvalidStackOperation)(BI.opAnd)
+
+    checkOpError(List(ScriptConstant.empty, ScriptNumber(0xcd)), OP_AND, ScriptErrorInvalidOperandSize)(BI.opAnd)
+    checkOpError(List(ScriptNumber(0xcd), ScriptConstant.empty), OP_AND, ScriptErrorInvalidOperandSize)(BI.opAnd)
+    checkOpError(List(ScriptNumber(0xabcdef), ScriptNumber(0xcd)), OP_AND, ScriptErrorInvalidOperandSize)(BI.opAnd)
+    checkOpError(List(ScriptNumber(0xcd), ScriptNumber(0xabcdef)), OP_AND, ScriptErrorInvalidOperandSize)(BI.opAnd)
+
   }
 }
