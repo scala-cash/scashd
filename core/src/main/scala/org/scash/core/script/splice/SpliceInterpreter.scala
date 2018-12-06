@@ -23,8 +23,8 @@ sealed abstract class SpliceInterpreter {
    * Spec info
    * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#op_cat]]
    */
-  def opCat(p: ScriptProgram): ScriptProgram =
-    script.checkBinary(p).getOrElse {
+  def opCat(program: ScriptProgram): ScriptProgram =
+    script.checkBinary(program).map { p =>
       val v1 = p.stack(1)
       val v2 = p.stack(0)
       if (v1.bytes.size + v2.bytes.size > Consensus.maxScriptElementSize) {
@@ -38,15 +38,15 @@ sealed abstract class SpliceInterpreter {
           case None => ScriptProgram(p, ScriptErrorUnknownError)
         }
       }
-    }
+    }.merge
 
   /**
    * Split the operand at the given position. This operation is the exact inverse of OP_CAT
    * Spec info
    * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#op_split]]
    */
-  def opSplit(p: ScriptProgram): ScriptProgram =
-    script.checkBinary(p).getOrElse {
+  def opSplit(program: ScriptProgram): ScriptProgram =
+    script.checkBinary(program).map { p =>
       //Split point is congruent
       ScriptNumber(p.stack(0).bytes, ScriptFlagUtil.requireMinimalData(p.flags)) match {
         case Success(l) =>
@@ -58,7 +58,7 @@ sealed abstract class SpliceInterpreter {
           } else ScriptProgram(p, ScriptErrorInvalidSplitRange)
         case Failure(_) => ScriptProgram(p, ScriptErrorUnknownError)
       }
-    }
+    }.merge
 
   /** Pushes the string length of the top element of the stack (without popping it). */
   def opSize(program: ScriptProgram): ScriptProgram = {

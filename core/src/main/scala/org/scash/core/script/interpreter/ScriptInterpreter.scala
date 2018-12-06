@@ -205,7 +205,7 @@ sealed abstract class ScriptInterpreter {
               logger.error("Script is invalid because it contains a disabled bitwise operation")
               loop(ScriptProgram(p, ScriptErrorDisabledOpCode), opCount)
             //disabled arithmetic operations
-            case _ if p.script.intersect(Seq(OP_MUL, OP_2MUL, OP_DIV, OP_2DIV, OP_MOD, OP_LSHIFT, OP_RSHIFT)).nonEmpty =>
+            case _ if p.script.intersect(Seq(OP_MUL, OP_2MUL, OP_2DIV, OP_MOD, OP_LSHIFT, OP_RSHIFT)).nonEmpty =>
               logger.error("Script is invalid because it contains a disabled arithmetic operation")
               loop(ScriptProgram(p, ScriptErrorDisabledOpCode), opCount)
             //program cannot contain a push operation > 520 bytes
@@ -243,6 +243,7 @@ sealed abstract class ScriptInterpreter {
             case OP_1ADD :: t => loop(ArithmeticInterpreter.op1Add(p), calcOpCount(opCount, OP_1ADD))
             case OP_1SUB :: t => loop(ArithmeticInterpreter.op1Sub(p), calcOpCount(opCount, OP_1SUB))
             case OP_SUB :: t => loop(ArithmeticInterpreter.opSub(p), calcOpCount(opCount, OP_SUB))
+            case OP_DIV :: t => loop(ArithmeticInterpreter.opDiv(p), calcOpCount(opCount, OP_DIV))
             case OP_ABS :: t => loop(ArithmeticInterpreter.opAbs(p), calcOpCount(opCount, OP_ABS))
             case OP_NEGATE :: t => loop(ArithmeticInterpreter.opNegate(p), calcOpCount(opCount, OP_NEGATE))
             case OP_NOT :: t => loop(ArithmeticInterpreter.opNot(p), calcOpCount(opCount, OP_NOT))

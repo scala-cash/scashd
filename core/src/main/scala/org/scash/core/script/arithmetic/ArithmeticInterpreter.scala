@@ -1,11 +1,13 @@
 package org.scash.core.script.arithmetic
 
+import org.scash.core.script
 import org.scash.core.script.constant._
 import org.scash.core.script.control._
 import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.script.result._
 import org.scash.core.util._
 import org.scash.core.script._
+import scalaz.{ -\/, \/, \/- }
 
 import scala.annotation.tailrec
 
@@ -36,6 +38,21 @@ sealed abstract class ArithmeticInterpreter {
   def opSub(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_SUB), "Script top must be OP_SUB")
     performBinaryArithmeticOperation(program, (x, y) => y - x)
+  }
+
+  /** a is divided by b. */
+  def opDiv(program: ScriptProgram): ScriptProgram = {
+    require(program.script.headOption.contains(OP_DIV), "Script top must be OP_DIV")
+    (for {
+      p <- script.checkBinary(program)
+      r <- binaryOp(p)
+      (n2, n1) = r
+    } yield {
+      if (n2 == ScriptNumber.zero)
+        ScriptProgram(program, ScriptErrorDivByZero)
+      else
+        ScriptProgram(p, (n1 / n2) :: p.stack.drop(2), p.script.tail)
+    }).merge
   }
 
   /** Takes the absolute value of the stack top. */
@@ -256,6 +273,35 @@ sealed abstract class ArithmeticInterpreter {
         logger.error("Stack top must be a script number/script constant to perform an arithmetic operation")
         ScriptProgram(program, ScriptErrorUnknownError)
     }
+  }
+
+  /**
+   * Performs the given arithmetic operation on the top two stack items
+   * @param program the program whose stack top is used as an argument for the arithmetic operation
+   * @param op the arithmetic operation that needs to be executed on the number, for instance incrementing by 1
+   * @return the program with the result from performing the arithmetic operation pushed onto the top of the stack
+   */
+  @tailrec
+  private def binaryOp(program: ScriptProgram): ScriptProgram \/ (ScriptNumber, ScriptNumber) = (program.stack.head, program.stack.tail.head) match {
+    case (x: ScriptNumber, y: ScriptNumber) =>
+      if (ScriptFlagUtil.requireMinimalData(program.flags) && (!BitcoinScriptUtil.isShortestEncoding(x) || !BitcoinScriptUtil.isShortestEncoding(y))) {
+        logger.error("The constant you gave us is not encoded in the shortest way possible")
+        -\/(ScriptProgram(program, ScriptErrorUnknownError))
+      } else if (isLargerThan4Bytes(x) || isLargerThan4Bytes(y)) {
+        logger.error("Cannot perform arithmetic operation on a number larger than 4 bytes, one of these two numbers is larger than 4 bytes: " + x + " " + y)
+        -\/(ScriptProgram(program, ScriptErrorUnknownError))
+      } else {
+        \/-((x, y))
+      }
+    case (x: ScriptConstant, y: ScriptNumber) =>
+      binaryOp(ScriptProgram(program, ScriptNumber(x.hex) :: program.stack.tail, ScriptProgram.Stack))
+    case (x: ScriptNumber, y: ScriptConstant) =>
+      binaryOp(ScriptProgram(program, x :: ScriptNumber(y.hex) :: program.stack.tail, ScriptProgram.Stack))
+    case (x: ScriptConstant, y: ScriptConstant) =>
+      binaryOp(ScriptProgram(program, ScriptNumber(x.hex) :: ScriptNumber(y.hex) :: program.stack.tail.tail, ScriptProgram.Stack))
+    case (_: ScriptToken, _: ScriptToken) =>
+      logger.error("The top two stack items must be script numbers to perform an arithmetic operation")
+      -\/(ScriptProgram(program, ScriptErrorUnknownError))
   }
 
   /**

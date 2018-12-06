@@ -7,7 +7,7 @@ import org.scash.core.script
 import org.scash.core.script.constant._
 import org.scash.core.script.control.{ ControlOperationsInterpreter, OP_VERIFY }
 import org.scash.core.script.result._
-import org.scash.core.script.{ ExecutedScriptProgram, ExecutionInProgressScriptProgram, PreExecutionScriptProgram, ScriptProgram }
+import org.scash.core.script._
 import org.scash.core.util.BitcoinSLogger
 import org.scash.core.script.bitwise._
 import scodec.bits.ByteVector
@@ -63,12 +63,17 @@ sealed abstract class BitwiseInterpreter {
    * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#bitwise-logic]]
    */
   private def opBitWise(program: => ScriptProgram)(f: (ByteVector, ByteVector) => ByteVector) =
-    script.checkBinary(program)
-      .orElse(script.checkSameSize(program))
-      .getOrElse {
-        val r = ScriptConstant(f(program.stack.head.bytes, program.stack(1).bytes))
-        ScriptProgram(program, r +: program.stack.drop(2), program.script.tail)
+    script.checkBinary(program).map { p =>
+      val v1 = p.stack(0).bytes
+      val v2 = p.stack(1).bytes
+      if (v1.size != v2.size) {
+        logger.error("Inputs must be the same size")
+        ScriptProgram(p, ScriptErrorInvalidOperandSize)
+      } else {
+        val r = ScriptConstant(f(v1, v2))
+        ScriptProgram(p, r +: p.stack.drop(2), p.script.tail)
       }
+    }.merge
 
   /** [[OP_AND]] Boolean and between each bit in the operands**/
   def opAnd(program: ScriptProgram): ScriptProgram = opBitWise(program)(_ & _)
