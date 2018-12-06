@@ -1,5 +1,8 @@
 package org.scash.core.script.arithmetic
-
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
 import org.scash.core.script
 import org.scash.core.script.constant._
 import org.scash.core.script.control._
@@ -7,13 +10,11 @@ import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.script.result._
 import org.scash.core.util._
 import org.scash.core.script._
+
 import scalaz.{ -\/, \/, \/- }
 
 import scala.annotation.tailrec
 
-/**
- * Created by chris on 1/25/16.
- */
 sealed abstract class ArithmeticInterpreter {
   private def logger = BitcoinSLogger.logger
   /** a is added to b. */
@@ -52,6 +53,20 @@ sealed abstract class ArithmeticInterpreter {
         ScriptProgram(program, ScriptErrorDivByZero)
       else
         ScriptProgram(p, (n1 / n2) :: p.stack.drop(2), p.script.tail)
+    }).merge
+  }
+  /** a mod of b */
+  def opMod(program: ScriptProgram): ScriptProgram = {
+    require(program.script.headOption.contains(OP_MOD), "Script top must be OP_MOD")
+    (for {
+      p <- script.checkBinary(program)
+      r <- binaryOp(p)
+      (n2, n1) = r
+    } yield {
+      if (n2 == ScriptNumber.zero)
+        ScriptProgram(program, ScriptErrorModByZero)
+      else
+        ScriptProgram(p, (n1 % n2) :: p.stack.drop(2), p.script.tail)
     }).merge
   }
 

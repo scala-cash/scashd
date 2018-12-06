@@ -54,6 +54,8 @@ sealed abstract class ScriptNumber extends ScriptConstant {
 
   def /(that: ScriptNumber): ScriptNumber = ScriptNumber(underlying / that.underlying)
 
+  def %(that: ScriptNumber): ScriptNumber = ScriptNumber(underlying % that.underlying)
+
   def <(that: ScriptNumber): Boolean = underlying < that.underlying
 
   def <=(that: ScriptNumber): Boolean = underlying <= that.underlying
