@@ -84,8 +84,9 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
       ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(1)),
       ScriptConstant("0xaf"))
 
-    checkOpError(stack, OP_CAT, ScriptErrorPushSize)(SI.opCat)
-    checkOpError(stack.reverse, OP_CAT, ScriptErrorPushSize)(SI.opCat)
+    val f = checkOpError(OP_CAT, SI.opCat) _
+    f(stack, ScriptErrorPushSize)
+    f(stack.reverse, ScriptErrorPushSize)
   }
 
   val inputs = List(
@@ -97,13 +98,14 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
   it must "evaluate all OP_CAT successfully" in {
     inputs.map {
       case (a, b) =>
-        checkBinaryOp(a, b, OP_CAT, List(ScriptConstant(a.bytes ++ b.bytes)))(SI.opCat)
+        val f = checkBinaryOp(OP_CAT, SI.opCat) _
+        f(a, b, ScriptConstant(a.bytes ++ b.bytes))
 
         //Check empty concats
-        checkBinaryOp(a, ScriptConstant.empty, OP_CAT, List(a))(SI.opCat)
-        checkBinaryOp(b, ScriptConstant.empty, OP_CAT, List(b))(SI.opCat)
-        checkBinaryOp(ScriptConstant.empty, a, OP_CAT, List(a))(SI.opCat)
-        checkBinaryOp(ScriptConstant.empty, b, OP_CAT, List(b))(SI.opCat)
+        f(a, ScriptConstant.empty, a)
+        f(b, ScriptConstant.empty, b)
+        f(ScriptConstant.empty, a, a)
+        f(ScriptConstant.empty, b, b)
     }
   }
 
@@ -133,10 +135,12 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
   it must "split and fail due to invalid range" in {
     inputs.map {
       case (a, b) =>
-        checkOpError(List(ScriptNumber(a.size + 1), a), OP_SPLIT, ScriptErrorInvalidSplitRange)(SI.opSplit)
-        checkOpError(List(ScriptNumber(b.size + 1), b), OP_SPLIT, ScriptErrorInvalidSplitRange)(SI.opSplit)
-        checkOpError(List(ScriptNumber(ScriptConstant(a.bytes ++ b.bytes).size + 1), ScriptConstant(a.bytes ++ b.bytes)), OP_SPLIT, ScriptErrorInvalidSplitRange)(SI.opSplit)
-        checkOpError(List(ScriptNumber(-1), a), OP_SPLIT, ScriptErrorInvalidSplitRange)(SI.opSplit)
+        val f = checkOpError(OP_SPLIT, SI.opSplit) _
+
+        f(List(a, ScriptNumber(a.size + 1)), ScriptErrorInvalidSplitRange)
+        f(List(b, ScriptNumber(b.size + 1)), ScriptErrorInvalidSplitRange)
+        f(List(ScriptConstant(a.bytes ++ b.bytes), ScriptNumber(ScriptConstant(a.bytes ++ b.bytes).size + 1)), ScriptErrorInvalidSplitRange)
+        f(List(a, ScriptNumber(-1)), ScriptErrorInvalidSplitRange)
 
     }
   }

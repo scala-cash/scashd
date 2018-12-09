@@ -102,16 +102,17 @@ class BitwiseInterpreterTest extends FlatSpec with TestHelpers {
     val empty = ScriptConstant.empty
     val zeroes = ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0))
     val ones = ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0xff))
+    val f = checkBinaryOp(op, interpreter) _
 
     op match {
-      case OP_XOR => checkBinaryOp(ones, ones, op, List(zeroes))(interpreter)
-      case _ => checkBinaryOp(ones, ones, op, List(ones))(interpreter)
+      case OP_XOR => f(ones, ones, zeroes)
+      case _ => f(ones, ones, ones)
     }
 
-    checkBinaryOp(empty, empty, op, List(empty))(interpreter)
-    checkBinaryOp(zeroes, zeroes, op, List(zeroes))(interpreter)
-    checkBinaryOp(a, b, op, List(ex))(interpreter)
-    checkBinaryOp(b, a, op, List(ex))(interpreter)
+    f(empty, empty, empty)
+    f(zeroes, zeroes, zeroes)
+    f(a, b, ex)
+    f(b, a, ex)
   }
 
   it must "evaluate all OP_AND tests" in {
@@ -139,14 +140,14 @@ class BitwiseInterpreterTest extends FlatSpec with TestHelpers {
   it must "check error conditions" in {
     List((OP_AND, BI.opAnd _), (OP_OR, BI.opOr _), (OP_XOR, BI.opXor _)).map {
       case (op, interpreter) =>
-        checkOpError(List(ScriptConstant.empty), op, ScriptErrorInvalidStackOperation)(interpreter)
-        checkOpError(List(ScriptNumber.zero), op, ScriptErrorInvalidStackOperation)(interpreter)
-        checkOpError(List(ScriptNumber(0xabcdef)), op, ScriptErrorInvalidStackOperation)(interpreter)
-
-        checkOpError(List(ScriptConstant.empty, ScriptNumber(0xcd)), op, ScriptErrorInvalidOperandSize)(interpreter)
-        checkOpError(List(ScriptNumber(0xcd), ScriptConstant.empty), op, ScriptErrorInvalidOperandSize)(interpreter)
-        checkOpError(List(ScriptNumber(0xabcdef), ScriptNumber(0xcd)), op, ScriptErrorInvalidOperandSize)(interpreter)
-        checkOpError(List(ScriptNumber(0xcd), ScriptNumber(0xabcdef)), op, ScriptErrorInvalidOperandSize)(interpreter)
+        val f = checkOpError(op, interpreter) _
+        f(List(ScriptConstant.empty), ScriptErrorInvalidStackOperation)
+        f(List(ScriptNumber.zero), ScriptErrorInvalidStackOperation)
+        f(List(ScriptNumber(0xabcdef)), ScriptErrorInvalidStackOperation)
+        f(List(ScriptConstant.empty, ScriptNumber(0xcd)), ScriptErrorInvalidOperandSize)
+        f(List(ScriptNumber(0xcd), ScriptConstant.empty), ScriptErrorInvalidOperandSize)
+        f(List(ScriptNumber(0xabcdef), ScriptNumber(0xcd)), ScriptErrorInvalidOperandSize)
+        f(List(ScriptNumber(0xcd), ScriptNumber(0xabcdef)), ScriptErrorInvalidOperandSize)
     }
   }
 }
