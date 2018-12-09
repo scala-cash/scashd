@@ -1,10 +1,13 @@
 package org.scash.core.script.constant
-
+/**
+  *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+  *   Copyright (c) 2018 Flores Lorca (MIT License)
+  *   https://github.com/scala-cash/scash
+  */
 import org.scash.core.util.BitcoinSUtil
 import scodec.bits.ByteVector
 
 /**
- * Created by chris on 6/5/16.
  * Numbers in script are unique in the fact that they don't follow a conventional signed numbering system
  * such as ones complement or twos complement. The bitcoin protocol uses little endian notation which means the most
  * significant bit indicates the sign on the number we are interpreting. The rest of the bits are used to determine

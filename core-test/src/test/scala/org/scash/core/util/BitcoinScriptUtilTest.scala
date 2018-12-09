@@ -150,24 +150,24 @@ class BitcoinScriptUtilTest extends FlatSpec with MustMatchers {
   }
 
   it must "determine if a number is encoded in the shortest way possible" in {
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("00")) must be(false)
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("0000")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("00")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("0000")) must be(false)
 
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("0100")) must be(false)
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("80")) must be(false)
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("0080")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("0100")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("80")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("0080")) must be(false)
 
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("0500")) must be(false)
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("050000")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("0500")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("050000")) must be(false)
 
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("0580")) must be(false)
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("050080")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("0580")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("050080")) must be(false)
 
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("ff7f80")) must be(false)
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("ff7f00")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("ff7f80")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("ff7f00")) must be(false)
 
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("ffff7f80")) must be(false)
-    BitcoinScriptUtil.isShortestEncoding(ScriptConstant("ffff7f00")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("ffff7f80")) must be(false)
+    BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("ffff7f00")) must be(false)
   }
 
   it must "check a public key's encoding" in {

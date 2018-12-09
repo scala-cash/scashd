@@ -1,5 +1,8 @@
 package org.scash.core.util
-
+/**
+  *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+  *   Copyright (c) 2018 Flores Lorca (MIT License)
+  */
 import org.scash.core.consensus.Consensus
 import org.scash.core.crypto.{ ECDigitalSignature, ECPublicKey, TxSigComponent }
 import org.scash.core.number.UInt32
@@ -13,9 +16,6 @@ import scodec.bits.ByteVector
 
 import scala.annotation.tailrec
 
-/**
- * Created by chris on 3/2/16.
- */
 trait BitcoinScriptUtil extends BitcoinSLogger {
 
   /** Takes in a sequence of script tokens and converts them to their hexadecimal value */
@@ -187,11 +187,10 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
   /**
    * Whenever a [[ScriptConstant]] is interpreted to a number BIP62 could enforce that number to be encoded
    * in the smallest encoding possible
-   * [[https://github.com/bitcoin/bitcoin/blob/a6a860796a44a2805a58391a009ba22752f64e32/src/script/script.h#L220-L237]]
    */
-  def isShortestEncoding(constant: ScriptConstant): Boolean = isShortestEncoding(constant.bytes)
+  def isMinimalEncoding(constant: ScriptConstant): Boolean = isMinimalEncoding(constant.bytes)
 
-  def isShortestEncoding(bytes: ByteVector): Boolean = {
+  def isMinimalEncoding(bytes: ByteVector): Boolean = {
     // If the most-significant-byte - excluding the sign bit - is zero
     // then we're not minimal. Note how this test also rejects the
     // negative-zero encoding, 0x80.
@@ -212,7 +211,7 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
    * in the smallest encoding possible
    * https://github.com/bitcoin/bitcoin/blob/a6a860796a44a2805a58391a009ba22752f64e32/src/script/script.h#L220-L237
    */
-  def isShortestEncoding(hex: String): Boolean = isShortestEncoding(BitcoinSUtil.decodeHex(hex))
+  def isMinimalEncoding(hex: String): Boolean = isMinimalEncoding(BitcoinSUtil.decodeHex(hex))
   /**
    * Checks the [[ECPublicKey]] encoding according to bitcoin core's function:
    * [[https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L202]].

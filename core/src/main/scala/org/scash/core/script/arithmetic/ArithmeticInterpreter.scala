@@ -196,8 +196,8 @@ sealed abstract class ArithmeticInterpreter {
       val c = ScriptNumber(program.stack.head.bytes)
       val b = ScriptNumber(program.stack.tail.head.bytes)
       val a = ScriptNumber(program.stack.tail.tail.head.bytes)
-      if (ScriptFlagUtil.requireMinimalData(program.flags) && (!BitcoinScriptUtil.isShortestEncoding(c) ||
-        !BitcoinScriptUtil.isShortestEncoding(b) || !BitcoinScriptUtil.isShortestEncoding(a))) {
+      if (ScriptFlagUtil.requireMinimalData(program.flags) && (!BitcoinScriptUtil.isMinimalEncoding(c) ||
+        !BitcoinScriptUtil.isMinimalEncoding(b) || !BitcoinScriptUtil.isMinimalEncoding(a))) {
         logger.error("The constant you gave us is not encoded in the shortest way possible")
         ScriptProgram(program, ScriptErrorUnknownError)
       } else if (isLargerThan4Bytes(c) || isLargerThan4Bytes(b) || isLargerThan4Bytes(a)) {
@@ -252,7 +252,7 @@ sealed abstract class ArithmeticInterpreter {
         logger.error("We need one stack element for performing a unary arithmetic operation")
         -\/(ScriptProgram(program, ScriptErrorInvalidStackOperation))
       case Some(s: ScriptNumber) =>
-        if (ScriptFlagUtil.requireMinimalData(program.flags) && !BitcoinScriptUtil.isShortestEncoding(s)) {
+        if (ScriptFlagUtil.requireMinimalData(program.flags) && !c) {
           logger.error("The number you gave us is not encoded in the shortest way possible")
           -\/(ScriptProgram(program, ScriptErrorMinimalData))
         } else if (isLargerThan4Bytes(s)) {
@@ -274,7 +274,7 @@ sealed abstract class ArithmeticInterpreter {
   @tailrec
   private def binaryScriptNumbers(program: ScriptProgram): ScriptProgram \/ (ScriptNumber, ScriptNumber) = (program.stack.head, program.stack.tail.head) match {
     case (x: ScriptNumber, y: ScriptNumber) =>
-      if (ScriptFlagUtil.requireMinimalData(program.flags) && (!BitcoinScriptUtil.isShortestEncoding(x) || !BitcoinScriptUtil.isShortestEncoding(y))) {
+      if (ScriptFlagUtil.requireMinimalData(program.flags) && (!BitcoinScriptUtil.isMinimalEncoding(x) || !BitcoinScriptUtil.isMinimalEncoding(y))) {
         logger.error("The constant you gave us is not encoded in the shortest way possible")
         -\/(ScriptProgram(program, ScriptErrorUnknownError))
       } else if (isLargerThan4Bytes(x) || isLargerThan4Bytes(y)) {
