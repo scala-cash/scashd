@@ -91,6 +91,8 @@ sealed abstract class ScriptNumber extends ScriptConstant {
     l.toInt
   }
 
+  def isZero = underlying == 0
+
   override def toLong = underlying
 
   /** The underlying number of the [[ScriptNumber]]. */
