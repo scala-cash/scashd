@@ -1,16 +1,21 @@
 package org.scash.core.script.arithmetic
-
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018-2019 The SCash developers (MIT License)
+ */
 import org.scash.core.script.result._
 import org.scash.core.script.flag.ScriptFlag
 import org.scash.core.script.{ ExecutedScriptProgram, ExecutionInProgressScriptProgram, ScriptProgram }
 import org.scash.core.script.constant._
 import org.scash.core.util.{ ScriptProgramTestUtil, TestUtil }
-import org.scalatest.{ FlatSpec, MustMatchers }
+import org.scalatest.FlatSpec
+import org.scash.core.TestHelpers
+import org.scash.core.policy.Policy
+import org.scash.core.script.ScriptProgram.Stack
+import scodec.bits.ByteVector
+import scodec.bits._
 
-/**
- * Created by chris on 1/25/16.
- */
-class ArithmeticInterpreterTest extends FlatSpec with MustMatchers {
+class ArithmeticInterpreterTest extends FlatSpec with TestHelpers {
 
   val AI = ArithmeticInterpreter
 
@@ -504,4 +509,76 @@ class ArithmeticInterpreterTest extends FlatSpec with MustMatchers {
     newProgram.script.isEmpty must be(true)
   }
 
+  //a, b, div expected, mod expected
+  val inputDivMod = List(
+    (hex"0xaf775318", hex"0x011bf485", hex"0x84", hex"0xab0b8300"),
+    (hex"0xaf775318", hex"0x011b", hex"0x9de600", hex"0x1202"),
+    (hex"0x0f", hex"0x04", hex"0x03", hex"0x03"),
+    (hex"0x983a", hex"0x04", hex"0xa60e", hex""),
+    (hex"0x983a", hex"0xa00f", hex"0x03", hex"0xb80b"),
+    (hex"0xc0e1e400", hex"0xa00f", hex"0xa60e", hex""),
+    (hex"0xc0e1e400", hex"0x04", hex"0x703839", hex""),
+    (hex"0xbbf05d03", hex"0x4101", hex"0x67af02", hex"0x9400"),
+    (hex"0xbbf05d03", hex"0x03", hex"0x3e501f01", hex"0x01"),
+    (hex"0xbbf05d03", hex"0x4e67ab21", hex"", hex"0xbbf05d03")).map(n => (ScriptNumber(n._1), ScriptNumber(n._2), ScriptNumber(n._3), ScriptNumber(n._4)))
+
+  def negNum(n: ScriptNumber) =
+    n.bytes.lastOption
+      .map(l => ScriptNumber((ByteVector(l ^ 0x80) ++ n.bytes.reverse.drop(1)).reverse))
+      .getOrElse(n)
+
+  it must "evaluate OP_DIV successfully " in inputDivMod.map {
+    case (n1, n2, ex, _) =>
+      val f = checkBinaryOp(OP_DIV, AI.opDiv) _
+
+      //Negative values
+      f(n1, n2, ex)
+      f(n1, negNum(n2), negNum(ex))
+      f(negNum(n1), n2, negNum(ex))
+      f(negNum(n1), negNum(n2), ex)
+
+      //Division identities
+      f(n1, ScriptNumber(hex"0x01"), n1)
+      f(n1, ScriptNumber(hex"0x81"), negNum(n1))
+      f(n1, n1, ScriptNumber(hex"0x01"))
+      f(n1, negNum(n1), ScriptNumber(hex"0x81"))
+      f(negNum(n1), n1, ScriptNumber(hex"0x81"))
+      f(n2, ScriptNumber(hex"0x01"), n2)
+      f(n2, ScriptNumber(hex"0x81"), negNum(n2))
+      f(n2, n2, ScriptNumber(hex"0x01"))
+      f(n2, negNum(n2), ScriptNumber(hex"0x81"))
+      f(negNum(n2), n2, ScriptNumber(hex"0x81"))
+  }
+
+  val flagSet = Policy.standardScriptVerifyFlags
+
+  it must "throw errors for OP_DIV" in inputDivMod.map {
+    case (n1, n2, _, _) =>
+      val f = checkOpError(OP_DIV, AI.opDiv) _
+      f(List(n1, ScriptNumber.zero), ScriptErrorDivByZero)
+      f(List(n2, ScriptNumber.zero), ScriptErrorDivByZero)
+  }
+
+  it must "evaluate OP_MOD successfully " in inputDivMod.map {
+    case (n1, n2, _, ex) =>
+      val f = checkBinaryOp(OP_MOD, AI.opMod) _
+
+      //Negative values
+      f(n1, n2, ex)
+      f(n1, negNum(n2), ex)
+      f(negNum(n1), n2, negNum(ex))
+      f(negNum(n1), negNum(n2), negNum(ex))
+
+      // Modulo identities
+      // n2 % n1 % n1 = n2 % n1
+      val p = ScriptProgram(
+        TestUtil.testProgramExecutionInProgress,
+        List(n1, n2).reverse,
+        List(OP_MOD, OP_MOD))
+
+      val p1 = AI.opMod(p)
+      val r = AI.opMod(ScriptProgram(p1, n2 +: p1.stack, p1.script))
+      r.stack.head must be(ex)
+      r.script.isEmpty must be(true)
+  }
 }

@@ -18,62 +18,57 @@ import scala.annotation.tailrec
 sealed abstract class ArithmeticInterpreter {
   private def logger = BitcoinSLogger.logger
   /** a is added to b. */
-  def opAdd(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_ADD), "Script top must be OP_ADD")
-    performBinaryArithmeticOperation(program, (x, y) => x + y)
+  def opAdd(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_ADD), "Script top must be OP_ADD")
+    binaryOp(p, (n1, n2) => \/-(n1 + n2))
   }
 
   /** Increments the stack top by 1. */
   def op1Add(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_1ADD), "Script top must be OP_1ADD")
-    performUnaryArithmeticOperation(program, x => x + ScriptNumber.one)
+    unaryOp(program, _ + ScriptNumber.one)
   }
 
   /** Decrements the stack top by 1. */
   def op1Sub(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_1SUB), "Script top must be OP_1SUB")
-    performUnaryArithmeticOperation(program, x => x - ScriptNumber.one)
+    unaryOp(program, _ - ScriptNumber.one)
   }
 
   /** b is subtracted from a. */
-  def opSub(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_SUB), "Script top must be OP_SUB")
-    performBinaryArithmeticOperation(program, (x, y) => y - x)
+  def opSub(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_SUB), "Script top must be OP_SUB")
+    binaryOp(p, (n1, n2) => \/-(n2 - n1))
   }
 
   /** a is divided by b. */
-  def opDiv(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_DIV), "Script top must be OP_DIV")
-    (for {
-      p <- script.checkBinary(program)
-      r <- binaryOp(p)
-      (n2, n1) = r
-    } yield {
-      if (n2 == ScriptNumber.zero)
-        ScriptProgram(program, ScriptErrorDivByZero)
-      else
-        ScriptProgram(p, (n1 / n2) :: p.stack.drop(2), p.script.tail)
-    }).merge
+  def opDiv(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_DIV), "Script top must be OP_DIV")
+    binaryOp(
+      p,
+      (n1, n2) =>
+        if (n1 == ScriptNumber.zero)
+          -\/(ScriptProgram(p, ScriptErrorDivByZero))
+        else
+          \/-(n2 / n1))
   }
+
   /** a mod of b */
-  def opMod(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_MOD), "Script top must be OP_MOD")
-    (for {
-      p <- script.checkBinary(program)
-      r <- binaryOp(p)
-      (n2, n1) = r
-    } yield {
-      if (n2 == ScriptNumber.zero)
-        ScriptProgram(program, ScriptErrorModByZero)
-      else
-        ScriptProgram(p, (n1 % n2) :: p.stack.drop(2), p.script.tail)
-    }).merge
+  def opMod(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_MOD), "Script top must be OP_MOD")
+    binaryOp(
+      p,
+      (n1, n2) =>
+        if (n1 == ScriptNumber.zero)
+          -\/(ScriptProgram(p, ScriptErrorModByZero))
+        else
+          \/-(n2 % n1))
   }
 
   /** Takes the absolute value of the stack top. */
   def opAbs(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_ABS), "Script top must be OP_ABS")
-    performUnaryArithmeticOperation(program, x => x match {
+    unaryOp(program, x => x match {
       case ScriptNumber.zero => ScriptNumber.zero
       case _: ScriptNumber => ScriptNumber(x.toLong.abs)
     })
@@ -82,25 +77,25 @@ sealed abstract class ArithmeticInterpreter {
   /** Negates the stack top. */
   def opNegate(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_NEGATE), "Script top must be OP_NEGATE")
-    performUnaryArithmeticOperation(program, x => -x)
+    unaryOp(program, -_)
   }
 
   /** If the input is 0 or 1, it is flipped. Otherwise the output will be 0. */
   def opNot(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_NOT), "Script top must be OP_NOT")
-    performUnaryArithmeticOperation(program, x => if (program.stackTopIsFalse) OP_TRUE else OP_FALSE)
+    unaryOp(program, _ => if (program.stackTopIsFalse) OP_TRUE else OP_FALSE)
   }
 
   /** Returns 0 if the input is 0. 1 otherwise. */
   def op0NotEqual(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_0NOTEQUAL), "Script top must be OP_0NOTEQUAL")
-    performUnaryArithmeticOperation(program, x => if (x.toLong == 0) OP_FALSE else OP_TRUE)
+    unaryOp(program, x => if (x.isZero) OP_FALSE else OP_TRUE)
   }
 
   /** If both a and b are not 0, the output is 1. Otherwise 0. */
   def opBoolAnd(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_BOOLAND), "Script top must be OP_BOOLAND")
-    performBinaryBooleanOperation(program, (x, y) => {
+    binaryBoolOp(program, (x, y) => {
       val xIsFalse = (x == ScriptNumber.zero || x == OP_0)
       val yIsFalse = (y == ScriptNumber.zero || y == OP_0)
       if (xIsFalse || yIsFalse) false else true
@@ -110,7 +105,7 @@ sealed abstract class ArithmeticInterpreter {
   /** If a or b is not 0, the output is 1. Otherwise 0. */
   def opBoolOr(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_BOOLOR), "Script top must be OP_BOOLOR")
-    performBinaryBooleanOperation(program, (x, y) => {
+    binaryBoolOp(program, (x, y) => {
       if (x == y && (x == ScriptNumber.zero || x == OP_0)) false else true
     })
   }
@@ -118,7 +113,7 @@ sealed abstract class ArithmeticInterpreter {
   /** Returns 1 if the numbers are equal, 0 otherwise. */
   def opNumEqual(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_NUMEQUAL), "Script top must be OP_NUMEQUAL")
-    performBinaryBooleanOperation(program, (x, y) => x.numEqual(y))
+    binaryBoolOp(program, (x, y) => x.numEqual(y))
   }
 
   /** Same as [[OP_NUMEQUAL]], but runs [[OP_VERIFY]] afterward. */
@@ -145,28 +140,20 @@ sealed abstract class ArithmeticInterpreter {
 
   /** Returns 1 if the numbers are not equal, 0 otherwise. */
   def opNumNotEqual(program: ScriptProgram): ScriptProgram = {
-    require(
-      program.script.headOption.contains(OP_NUMNOTEQUAL),
-      "Script top must be OP_NUMNOTEQUAL")
-    performBinaryBooleanOperation(program, (x, y) => {
-      x.toLong != y.toLong
-    })
+    require(program.script.headOption.contains(OP_NUMNOTEQUAL), "Script top must be OP_NUMNOTEQUAL")
+    binaryBoolOp(program, (x, y) => x.toLong != y.toLong)
   }
 
   /** Returns 1 if a is less than b, 0 otherwise. */
   def opLessThan(program: ScriptProgram): ScriptProgram = {
-    require(
-      program.script.headOption.contains(OP_LESSTHAN),
-      "Script top must be OP_LESSTHAN")
-    performBinaryBooleanOperation(program, (x, y) => y < x)
+    require(program.script.headOption.contains(OP_LESSTHAN), "Script top must be OP_LESSTHAN")
+    binaryBoolOp(program, (x, y) => y < x)
   }
 
   /** Returns 1 if a is greater than b, 0 otherwise. */
   def opGreaterThan(program: ScriptProgram): ScriptProgram = {
-    require(
-      program.script.headOption.contains(OP_GREATERTHAN),
-      "Script top must be OP_GREATERTHAN")
-    performBinaryBooleanOperation(program, (x, y) => y > x)
+    require(program.script.headOption.contains(OP_GREATERTHAN), "Script top must be OP_GREATERTHAN")
+    binaryBoolOp(program, (x, y) => y > x)
   }
 
   /** Returns 1 if a is less than or equal to b, 0 otherwise. */
@@ -174,7 +161,7 @@ sealed abstract class ArithmeticInterpreter {
     require(
       program.script.headOption.contains(OP_LESSTHANOREQUAL),
       "Script top must be OP_LESSTHANOREQUAL")
-    performBinaryBooleanOperation(program, (x, y) => y <= x)
+    binaryBoolOp(program, (x, y) => y <= x)
   }
 
   /** Returns 1 if a is greater than or equal to b, 0 otherwise. */
@@ -182,33 +169,19 @@ sealed abstract class ArithmeticInterpreter {
     require(
       program.script.headOption.contains(OP_GREATERTHANOREQUAL),
       "Script top must be OP_GREATERTHANOREQUAL")
-    performBinaryBooleanOperation(program, (x, y) => y >= x)
+    binaryBoolOp(program, (x, y) => y >= x)
   }
 
   /** Returns the smaller of a and b. */
-  def opMin(program: ScriptProgram): ScriptProgram = {
-    require(
-      program.script.headOption.contains(OP_MIN),
-      "Script top must be OP_MIN")
-    if (program.stack.size < 2) {
-      logger.error("OP_MAX requires at least two stack elements")
-      ScriptProgram(program, ScriptErrorInvalidStackOperation)
-    } else {
-      performComparisonOnTwoStackTopItems(program, (x: ScriptNumber, y: ScriptNumber) => if (x < y) x else y)
-    }
+  def opMin(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_MIN), "Script top must be OP_MIN")
+    binaryOp(p, (n1, n2) => \/-(if (n1 < n2) n1 else n2))
   }
 
   /** Returns the larger of a and b. */
-  def opMax(program: ScriptProgram): ScriptProgram = {
-    require(
-      program.script.headOption.contains(OP_MAX),
-      "Script top must be OP_MAX")
-    if (program.stack.size < 2) {
-      logger.error("OP_MAX requires at least two stack elements")
-      ScriptProgram(program, ScriptErrorInvalidStackOperation)
-    } else {
-      performComparisonOnTwoStackTopItems(program, (x: ScriptNumber, y: ScriptNumber) => if (x > y) x else y)
-    }
+  def opMax(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_MAX), "Script top must be OP_MAX")
+    binaryOp(p, (n1, n2) => \/-(if (n1 > n2) n1 else n2))
   }
 
   /** Returns 1 if x is within the specified range (left-inclusive), 0 otherwise. */
@@ -242,62 +215,64 @@ sealed abstract class ArithmeticInterpreter {
   }
 
   /**
-   * This function checks if a number is <= 4 bytes in size
-   * We cannot perform arithmetic operations on bitcoin numbers that are larger than 4 bytes.
-   * https://github.com/bitcoin/bitcoin/blob/a6a860796a44a2805a58391a009ba22752f64e32/src/script/script.h#L214-L239.
+   * Performs unary arithmetic operations
    */
-  private def isLargerThan4Bytes(scriptNumber: ScriptNumber): Boolean = scriptNumber.bytes.size > 4
+  def unaryOp(p: ScriptProgram, op: ScriptNumber => ScriptNumber) =
+    unaryScriptNumber(p)
+      .map(n => ScriptProgram(p, op(n) :: p.stack.tail, p.script.tail))
+      .merge
 
   /**
-   * Performs the given arithmetic operation on the stack head
-   * @param program the program whose stack top is used as an argument for the arithmetic operation
-   * @param op the arithmetic ooperation that needs to be executed on the number, for instance incrementing by 1
-   * @return the program with the result from performing the arithmetic operation pushed onto the top of the stack
+   * Performs binary arithmetic operations
+   */
+  def binaryOp(prog: ScriptProgram, op: (ScriptNumber, ScriptNumber) => ScriptProgram \/ ScriptNumber) = {
+    (for {
+      p <- script.checkBinary(prog)
+      n <- binaryScriptNumbers(p)
+      np <- op.tupled(n)
+    } yield ScriptProgram(p, np :: p.stack.drop(2), p.script.tail)).merge
+  }
+
+  /**
+   * Compares two script numbers with the given boolean operation
+   * returns the program with either OP_FALSE or OP_TRUE on the stack top
+   */
+  def binaryBoolOp(program: ScriptProgram, op: (ScriptNumber, ScriptNumber) => Boolean): ScriptProgram = {
+    binaryOp(program, (n1, n2) => \/-(if (op(n1, n2)) OP_TRUE else OP_FALSE))
+  }
+
+  /**
+   * Returns the top object in the stack as ScriptNumber. Otherwise it will return
+   * the program with the indicated Script error
    */
   @tailrec
-  private def performUnaryArithmeticOperation(program: ScriptProgram, op: ScriptNumber => ScriptNumber): ScriptProgram = {
+  private def unaryScriptNumber(program: ScriptProgram): ScriptProgram \/ ScriptNumber = {
     program.stack.headOption match {
       case None =>
         logger.error("We need one stack element for performing a unary arithmetic operation")
-        ScriptProgram(program, ScriptErrorInvalidStackOperation)
+        -\/(ScriptProgram(program, ScriptErrorInvalidStackOperation))
       case Some(s: ScriptNumber) =>
         if (ScriptFlagUtil.requireMinimalData(program.flags) && !BitcoinScriptUtil.isShortestEncoding(s)) {
           logger.error("The number you gave us is not encoded in the shortest way possible")
-          ScriptProgram(program, ScriptErrorMinimalData)
+          -\/(ScriptProgram(program, ScriptErrorMinimalData))
         } else if (isLargerThan4Bytes(s)) {
           logger.error("Cannot perform arithmetic operation on a number larger than 4 bytes, here is the number: " + s)
-          //pretty sure that an error is thrown inside of CScriptNum which in turn is caught by interpreter.cpp here
-          //https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L999-L1002
-          ScriptProgram(program, ScriptErrorUnknownError)
-        } else {
-          val newScriptNumber = op(s)
-          ScriptProgram(program, newScriptNumber :: program.stack.tail, program.script.tail)
-        }
+          -\/(ScriptProgram(program, ScriptErrorUnknownError))
+        } else \/-(s)
       case Some(s: ScriptConstant) =>
-        if (ScriptFlagUtil.requireMinimalData(program.flags) && !BitcoinScriptUtil.isShortestEncoding(s)) {
-          logger.error("The number you gave us is not encoded in the shortest way possible")
-          ScriptProgram(program, ScriptErrorUnknownError)
-        } else {
-          val interpretedNumber = ScriptNumber(ScriptNumberUtil.toLong(s.hex))
-          val newProgram = ScriptProgram(program, interpretedNumber :: program.stack.tail, ScriptProgram.Stack)
-          performUnaryArithmeticOperation(newProgram, op)
-        }
-      case Some(s: ScriptToken) =>
-        //pretty sure that an error is thrown inside of CScriptNum which in turn is caught by interpreter.cpp here
-        //https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L999-L1002
+        unaryScriptNumber(ScriptProgram(program, ScriptNumber(ScriptNumberUtil.toLong(s.hex)) :: program.stack.tail, ScriptProgram.Stack))
+      case Some(_: ScriptToken) =>
         logger.error("Stack top must be a script number/script constant to perform an arithmetic operation")
-        ScriptProgram(program, ScriptErrorUnknownError)
+        -\/(ScriptProgram(program, ScriptErrorUnknownError))
     }
   }
 
   /**
-   * Performs the given arithmetic operation on the top two stack items
-   * @param program the program whose stack top is used as an argument for the arithmetic operation
-   * @param op the arithmetic operation that needs to be executed on the number, for instance incrementing by 1
-   * @return the program with the result from performing the arithmetic operation pushed onto the top of the stack
+   * Returns the top two objects in the stack as ScriptNumbers. Otherwise it will return
+   * the program with the indicated Script error
    */
   @tailrec
-  private def binaryOp(program: ScriptProgram): ScriptProgram \/ (ScriptNumber, ScriptNumber) = (program.stack.head, program.stack.tail.head) match {
+  private def binaryScriptNumbers(program: ScriptProgram): ScriptProgram \/ (ScriptNumber, ScriptNumber) = (program.stack.head, program.stack.tail.head) match {
     case (x: ScriptNumber, y: ScriptNumber) =>
       if (ScriptFlagUtil.requireMinimalData(program.flags) && (!BitcoinScriptUtil.isShortestEncoding(x) || !BitcoinScriptUtil.isShortestEncoding(y))) {
         logger.error("The constant you gave us is not encoded in the shortest way possible")
@@ -308,135 +283,23 @@ sealed abstract class ArithmeticInterpreter {
       } else {
         \/-((x, y))
       }
-    case (x: ScriptConstant, y: ScriptNumber) =>
-      binaryOp(ScriptProgram(program, ScriptNumber(x.hex) :: program.stack.tail, ScriptProgram.Stack))
+    case (x: ScriptConstant, _: ScriptNumber) =>
+      binaryScriptNumbers(ScriptProgram(program, ScriptNumber(x.hex) :: program.stack.tail, ScriptProgram.Stack))
     case (x: ScriptNumber, y: ScriptConstant) =>
-      binaryOp(ScriptProgram(program, x :: ScriptNumber(y.hex) :: program.stack.tail, ScriptProgram.Stack))
+      binaryScriptNumbers(ScriptProgram(program, x :: ScriptNumber(y.hex) :: program.stack.tail, ScriptProgram.Stack))
     case (x: ScriptConstant, y: ScriptConstant) =>
-      binaryOp(ScriptProgram(program, ScriptNumber(x.hex) :: ScriptNumber(y.hex) :: program.stack.tail.tail, ScriptProgram.Stack))
+      binaryScriptNumbers(ScriptProgram(program, ScriptNumber(x.hex) :: ScriptNumber(y.hex) :: program.stack.tail.tail, ScriptProgram.Stack))
     case (_: ScriptToken, _: ScriptToken) =>
       logger.error("The top two stack items must be script numbers to perform an arithmetic operation")
       -\/(ScriptProgram(program, ScriptErrorUnknownError))
   }
 
   /**
-   * Performs the given arithmetic operation on the top two stack items
-   * @param program the program whose stack top is used as an argument for the arithmetic operation
-   * @param op the arithmetic operation that needs to be executed on the number, for instance incrementing by 1
-   * @return the program with the result from performing the arithmetic operation pushed onto the top of the stack
+   * This function checks if a number is <= 4 bytes in size
+   * We cannot perform arithmetic operations on bitcoin numbers that are larger than 4 bytes.
    */
-  @tailrec
-  private def performBinaryArithmeticOperation(program: ScriptProgram, op: (ScriptNumber, ScriptNumber) => ScriptNumber): ScriptProgram = {
-    if (program.stack.size < 2) {
-      logger.error("We must have two elements to perform a binary arithmetic operation")
-      ScriptProgram(program, ScriptErrorInvalidStackOperation)
-    } else {
-      (program.stack.head, program.stack.tail.head) match {
-        case (x: ScriptNumber, y: ScriptNumber) =>
-          if (ScriptFlagUtil.requireMinimalData(program.flags) && (!BitcoinScriptUtil.isShortestEncoding(x) || !BitcoinScriptUtil.isShortestEncoding(y))) {
-            logger.error("The constant you gave us is not encoded in the shortest way possible")
-            ScriptProgram(program, ScriptErrorUnknownError)
-          } else if (isLargerThan4Bytes(x) || isLargerThan4Bytes(y)) {
-            //pretty sure that an error is thrown inside of CScriptNum which in turn is caught by interpreter.cpp here
-            //https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L999-L1002
-            logger.error("Cannot perform arithmetic operation on a number larger than 4 bytes, one of these two numbers is larger than 4 bytes: " + x + " " + y)
-            ScriptProgram(program, ScriptErrorUnknownError)
-          } else {
-            val newStackTop = op(x, y)
-            ScriptProgram(program, newStackTop :: program.stack.tail.tail, program.script.tail)
-          }
-        case (x: ScriptConstant, y: ScriptNumber) =>
-          //interpret x as a number
-          val interpretedNumber = ScriptNumber(x.hex)
-          val newProgram = ScriptProgram(program, interpretedNumber :: program.stack.tail, ScriptProgram.Stack)
-          performBinaryArithmeticOperation(newProgram, op)
-        case (x: ScriptNumber, y: ScriptConstant) =>
-          val interpretedNumber = ScriptNumber(y.hex)
-          val newProgram = ScriptProgram(program, x :: interpretedNumber :: program.stack.tail, ScriptProgram.Stack)
-          performBinaryArithmeticOperation(newProgram, op)
-        case (x: ScriptConstant, y: ScriptConstant) =>
-          //interpret x and y as a number
-          val interpretedNumberX = ScriptNumber(x.hex)
-          val interpretedNumberY = ScriptNumber(y.hex)
-          val newProgram = ScriptProgram(program, interpretedNumberX :: interpretedNumberY :: program.stack.tail.tail, ScriptProgram.Stack)
-          performBinaryArithmeticOperation(newProgram, op)
-        case (x: ScriptToken, y: ScriptToken) =>
-          //pretty sure that an error is thrown inside of CScriptNum which in turn is caught by interpreter.cpp here
-          //https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L999-L1002
-          logger.error("The top two stack items must be script numbers to perform an arithmetic operation")
-          ScriptProgram(program, ScriptErrorUnknownError)
-      }
-    }
-  }
+  private def isLargerThan4Bytes(scriptNumber: ScriptNumber): Boolean = scriptNumber.bytes.size > 4
 
-  /**
-   * Compares two script numbers with the given boolean operation
-   * @param program the program whose two top stack elements are used for the comparison
-   * @param op the operation which compares the two script numbers
-   * @return the program with either OP_FALSE or OP_TRUE on the stack top
-   */
-  private def performBinaryBooleanOperation(program: ScriptProgram, op: (ScriptNumber, ScriptNumber) => Boolean): ScriptProgram = {
-    if (program.stack.size < 2) {
-      logger.error("We need two stack elements for a binary boolean operation")
-      ScriptProgram(program, ScriptErrorInvalidStackOperation)
-    } else {
-      val (x, y) = parseTopTwoStackElementsAsScriptNumbers(program)
-      if (ScriptFlagUtil.requireMinimalData(program.flags) &&
-        (!BitcoinScriptUtil.isShortestEncoding(x) || !BitcoinScriptUtil.isShortestEncoding(y))) {
-        logger.error("The constant you gave us is not encoded in the shortest way possible")
-        ScriptProgram(program, ScriptErrorUnknownError)
-      } else if (isLargerThan4Bytes(x) || isLargerThan4Bytes(y)) {
-        //pretty sure that an error is thrown inside of CScriptNum which in turn is caught by interpreter.cpp here
-        //https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L999-L1002
-        logger.error("Cannot perform boolean operation on a number larger than 4 bytes, one of these two numbers is larger than 4 bytes: " + x + " " + y)
-        ScriptProgram(program, ScriptErrorUnknownError)
-      } else {
-        val newStackTop = if (op(x, y)) OP_TRUE else OP_FALSE
-        ScriptProgram(program, newStackTop :: program.stack.tail.tail, program.script.tail)
-      }
-    }
-  }
-
-  /**
-   * Takes the top two stack items, parses them to numbers then executes the op function on them and places the result
-   * onto the stack top
-   * @param program the script program whose two top stack items are used as arguments for op
-   * @param op the operation that needs to be executed on the two stack top items
-   * @return the program with the result of op pushed onto the top of the stack
-   */
-  private def performComparisonOnTwoStackTopItems(
-    program: ScriptProgram,
-    op: (ScriptNumber, ScriptNumber) => ScriptNumber): ScriptProgram = {
-    performBinaryArithmeticOperation(program, op)
-  }
-
-  /**
-   * Takes the top two stack elements and parses them as script numbers
-   * @param program the program whose top two stack elements are being parsed as script numbers
-   * @return the tuple with the first element being the first stack element, the second element in the tuple being the second stack element
-   */
-  private def parseTopTwoStackElementsAsScriptNumbers(program: ScriptProgram): (ScriptNumber, ScriptNumber) = {
-    (program.stack.head, program.stack.tail.head) match {
-      case (x: ScriptNumber, y: ScriptNumber) => (x, y)
-      case (x: ScriptConstant, y: ScriptNumber) =>
-        val interpretedNumber = ScriptNumber(x.hex)
-        (interpretedNumber, y)
-      case (x: ScriptNumber, y: ScriptConstant) =>
-        //interpret y as a number
-        val interpretedNumber = ScriptNumber(y.hex)
-        (x, interpretedNumber)
-      case (x: ScriptConstant, y: ScriptConstant) =>
-        //interpret x and y as a number
-        val interpretedNumberX = ScriptNumber(x.hex)
-        val interpretedNumberY = ScriptNumber(y.hex)
-        (interpretedNumberX, interpretedNumberY)
-      case (x: ScriptToken, y: ScriptToken) =>
-        //pretty sure that an error is thrown inside of CScriptNum which in turn is caught by interpreter.cpp here
-        //https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L999-L1002
-        logger.error("The top two stack items must be script numbers to perform an arithmetic operation")
-        throw new RuntimeException("Stack top elements must have be script constants to be interpreted as numbers")
-    }
-  }
 }
 
 object ArithmeticInterpreter extends ArithmeticInterpreter
