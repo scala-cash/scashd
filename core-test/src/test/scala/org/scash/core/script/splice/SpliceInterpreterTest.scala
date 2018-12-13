@@ -89,14 +89,14 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
     f(stack.reverse, ScriptErrorPushSize)
   }
 
-  val inputs = List(
+  val spliceInputs = List(
     (ScriptConstant.empty, ScriptConstant.empty),
     (ScriptConstant.zero, ScriptConstant.zero),
     (ScriptConstant("0xab"), ScriptConstant("0xcd")),
     (ScriptConstant("0xabcdef"), ScriptConstant("0x12345678")))
 
   it must "evaluate all OP_CAT successfully" in {
-    inputs.map {
+    spliceInputs.map {
       case (a, b) =>
         val f = checkBinaryOp(OP_CAT, SI.opCat) _
         f(a, b, ScriptConstant(a.bytes ++ b.bytes))
@@ -110,7 +110,7 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
   }
 
   it must "evaluate all OP_SPLIT successfully" in {
-    inputs.map {
+    spliceInputs.map {
       case (a, b) =>
         SI.opSplit(
           ScriptProgram(
@@ -122,7 +122,7 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
   }
 
   it must "split and cat successfully" in {
-    inputs.map {
+    spliceInputs.map {
       case (a, b) =>
         val p = ScriptProgram(
           TestUtil.testProgramExecutionInProgress,
@@ -133,7 +133,7 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
   }
 
   it must "split and fail due to invalid range" in {
-    inputs.map {
+    spliceInputs.map {
       case (a, b) =>
         val f = checkOpError(OP_SPLIT, SI.opSplit) _
 
@@ -142,6 +142,29 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
         f(List(ScriptConstant(a.bytes ++ b.bytes), ScriptNumber(ScriptConstant(a.bytes ++ b.bytes).size + 1)), ScriptErrorInvalidSplitRange)
         f(List(a, ScriptNumber(-1)), ScriptErrorInvalidSplitRange)
 
+    }
+  }
+
+  it must "call OP_NUM2BIN correctly" in {
+    val p = ScriptProgram(
+      TestUtil.testProgramExecutionInProgress,
+      List(ScriptNumber.zero, ScriptConstant.empty).reverse,
+      List(OP_NUM2BIN))
+    println(p.stack)
+    val p1 = SI.opNum2Bin(p)
+    println(p1.stack)
+    p1.stack.head must be(ScriptNumber.zero)
+
+    10.to(Consensus.maxScriptElementSize).map { s =>
+      val paddedZeroes = ByteVector.fill(s)(0x00)
+      val p = ScriptProgram(
+        TestUtil.testProgramExecutionInProgress,
+        List(ScriptNumber(paddedZeroes.size), ScriptConstant.empty).reverse,
+        List(OP_NUM2BIN))
+      println(p.stack)
+      val p1 = SI.opNum2Bin(p)
+      println(p1.stack)
+      p1.stack.head must be(ScriptConstant.empty)
     }
   }
 }

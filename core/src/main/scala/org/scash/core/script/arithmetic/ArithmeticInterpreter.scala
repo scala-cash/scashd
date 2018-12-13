@@ -252,7 +252,7 @@ sealed abstract class ArithmeticInterpreter {
         logger.error("We need one stack element for performing a unary arithmetic operation")
         -\/(ScriptProgram(program, ScriptErrorInvalidStackOperation))
       case Some(s: ScriptNumber) =>
-        if (ScriptFlagUtil.requireMinimalData(program.flags) && !c) {
+        if (ScriptFlagUtil.requireMinimalData(program.flags) && !BitcoinScriptUtil.isMinimalEncoding(s)) {
           logger.error("The number you gave us is not encoded in the shortest way possible")
           -\/(ScriptProgram(program, ScriptErrorMinimalData))
         } else if (isLargerThan4Bytes(s)) {

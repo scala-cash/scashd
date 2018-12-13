@@ -1,10 +1,10 @@
 package org.scash.core.script.constant
 /**
-  *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
-  *   Copyright (c) 2018 Flores Lorca (MIT License)
-  *   https://github.com/scala-cash/scash
-  */
-import org.scash.core.util.BitcoinSUtil
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ *   https://github.com/scala-cash/scash
+ */
+import org.scash.core.util.{ BitcoinSUtil, BitcoinScriptUtil }
 import scodec.bits.ByteVector
 
 /**

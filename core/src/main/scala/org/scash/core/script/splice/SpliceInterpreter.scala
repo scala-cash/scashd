@@ -6,15 +6,13 @@ package org.scash.core.script.splice
  */
 import org.scash.core.consensus.Consensus
 import org.scash.core.script
-import org.scash.core.script.constant.{ScriptNumber, _}
-import org.scash.core.script.result.{ScriptErrorInvalidSplitRange, ScriptErrorInvalidStackOperation, ScriptErrorPushSize, ScriptErrorUnknownError}
+import org.scash.core.script.constant.{ ScriptNumber, _ }
+import org.scash.core.script.result._
 import org.scash.core.script.ScriptProgram
 import org.scash.core.script.flag.ScriptFlagUtil
-import org.scash.core.util.BitcoinSLogger
-import scalaz.{-\/, \/-}
+import org.scash.core.util.{ BitcoinSLogger, BitcoinScriptUtil }
+import scalaz.{ -\/, \/- }
 import scodec.bits.ByteVector
-
-import scala.util.{Failure, Success}
 
 sealed abstract class SpliceInterpreter {
 
@@ -34,8 +32,7 @@ sealed abstract class SpliceInterpreter {
       case (s1: ScriptConstant, s2: ScriptConstant) => \/-(s1 ++ s2)
       case _ => -\/(ScriptProgram(p, ScriptErrorUnknownError))
     }
-  } yield ScriptProgram(np, n :: p.stack.tail.tail, p.script.tail)
-  ).merge
+  } yield ScriptProgram(np, n :: p.stack.tail.tail, p.script.tail)).merge
 
   /**
    * Split the operand at the given position. This operation is the exact inverse of OP_CAT
@@ -44,45 +41,84 @@ sealed abstract class SpliceInterpreter {
    */
   def opSplit(program: ScriptProgram): ScriptProgram = (for {
     p <- script.checkBinary(program)
-    n <- ScriptNumber(p, ScriptFlagUtil.requireMinimalData(p.flags))
+    n <- ScriptNumber(p, p.stack.head.bytes)
     pos = n.toLong
     data = p.stack(1).bytes
-    s <-
-      if (pos >= 0 && pos.toLong <= data.size) {
-        \/-(data.splitAt(pos))
-      } else {
-        -\/(ScriptProgram(p, ScriptErrorInvalidSplitRange))
-      }
-  } yield ScriptProgram(p, List(ScriptConstant(s._2), ScriptConstant(s._1)) ::: p.stack.tail.tail, p.script.tail)
-  ).merge
-
+    s <- if (pos >= 0 && pos.toLong <= data.size) {
+      \/-(data.splitAt(pos))
+    } else {
+      -\/(ScriptProgram(p, ScriptErrorInvalidSplitRange))
+    }
+  } yield ScriptProgram(p, List(ScriptConstant(s._2), ScriptConstant(s._1)) ::: p.stack.tail.tail, p.script.tail)).merge
 
   /**
-    * Convert the numeric value into a byte sequence of a certain size, taking account of the sign bit.
-    * The byte sequence produced uses the little-endian encoding.
-    * Spec info
-    * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#op_num2bin]]
-    */
+   * Convert the numeric value into a byte sequence of a certain size, taking account of the sign bit.
+   * The byte sequence produced uses the little-endian encoding.
+   * Spec info
+   * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#op_num2bin]]
+   * (in size --> out)
+   */
   def opNum2Bin(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_NUM2BIN), "Script top must be OP_NUM2BIN")
-    for {
+    println(s"======input ${program.stack.map(_.bytes)}")
+    (for {
       p <- script.checkBinary(program)
-      size <- ScriptNumber(p, ScriptFlagUtil.requireMinimalData(p.flags))
+      _ = println(p.stack)
+      size <- ScriptNumber(p, p.stack.head.bytes)
+      _ = println(s"size $size")
+      _ = println(s"size as long ${size.toLong}")
       np <- scriptPushSize(p)(size.toLong)
-      num <- ScriptNumber.fromBytes(np.stack(1).bytes)
-    } yield ()
+      _ = println(s"${np.stack.map(_.bytes)}")
+    } yield {
+
+      val bin = BitcoinScriptUtil.toMinimalEncoding(np.stack(1).bytes)
+      println(s"num: ${bin.bytes}")
+      if (bin.size > size.toLong) {
+        ScriptProgram(p, ScriptErrorImpossibleEncoding)
+      } else if (bin.size == size.toLong) {
+        println(s"same size ${bin.size} size ${size.toLong} hex ${bin.hex}")
+        val np = ScriptProgram(p, ScriptConstant(bin.bytes) +: p.stack.tail.tail, p.script.tail)
+        println(s"final ${np.stack.map(_.bytes)} script ${np.script.map(_.bytes)}")
+        np
+      } else {
+        println("different size")
+        println(s"diff size ${bin.size} size ${size.toLong}")
+
+        val r = if (bin.size == 0) {
+          ScriptConstant(ByteVector.fill(size.toLong)(0x00))
+        } else {
+          val signBit = (bin.bytes.last & 0x80).toByte
+          val bit = (bin.bytes.last & 0x7f).toByte
+          val padding = ByteVector.fill((size.toLong - 1) - bin.size)(0x00)
+          val nNum = bin.bytes.update(bin.size - 1, bit) ++ padding :+ signBit
+          ScriptConstant(nNum)
+        }
+        val p = ScriptProgram(np, r +: np.stack.tail.tail, np.script.tail)
+        println(s"final ${p.stack.map(_.bytes)} script ${p.script.map(_.bytes)}")
+        p
+      }
+    })
+      .merge
   }
 
   /**
-    * Convert the byte sequence into a numeric value, including minimal encoding.
-    * The byte sequence must encode the value in little-endian encoding.
-    * Spec info
-    * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#op_bin2num]]
-    */
-  def opBin2Num(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_NUM2BIN), "Script top must be OP_NUM2BIN")
-
-    program
+   * Convert the byte sequence into a numeric value, including minimal encoding.
+   * The byte sequence must encode the value in little-endian encoding.
+   * Spec info
+   * [[https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-reenabled-opcodes.md#op_bin2num]]
+   */
+  def opBin2Num(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_BIN2NUM), "Script top must be OP_BIN2NUM")
+    if (p.stack.isEmpty) {
+      ScriptProgram(p, ScriptErrorInvalidStackOperation)
+    } else {
+      val bin = BitcoinScriptUtil.toMinimalEncoding(p.stack.head.bytes)
+      if (!BitcoinScriptUtil.isMinimalEncoding(bin) || (bin.size > 4)) {
+        ScriptProgram(p, ScriptErrorInvalidNumberRange)
+      } else {
+        ScriptProgram(p, bin +: p.stack.tail, p.script.tail)
+      }
+    }
   }
 
   /** Pushes the string length of the top element of the stack (without popping it). */
@@ -105,7 +141,7 @@ sealed abstract class SpliceInterpreter {
   }
 
   def scriptPushSize(p: => ScriptProgram)(b: Long) =
-    if(b > Consensus.maxScriptElementSize)
+    if (b < 0 || b > Consensus.maxScriptElementSize)
       -\/(ScriptProgram(p, ScriptErrorPushSize))
     else
       \/-(p)

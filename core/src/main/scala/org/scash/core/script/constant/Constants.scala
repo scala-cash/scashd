@@ -1,15 +1,16 @@
 package org.scash.core.script.constant
 
+import org.scash.core.consensus.Consensus
 import org.scash.core.number.Int64
 import org.scash.core.protocol.NetworkElement
 import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.script.result.ScriptErrorUnknownError
-import org.scash.core.util.{BitcoinSUtil, BitcoinScriptUtil, Factory}
-import org.scash.core.script.{ScriptOperationFactory, ScriptProgram}
-import scalaz.{-\/, \/, \/-}
+import org.scash.core.util.{ BitcoinSUtil, BitcoinScriptUtil, Factory }
+import org.scash.core.script.{ ScriptOperationFactory, ScriptProgram }
+import scalaz.{ -\/, \/, \/- }
 import scodec.bits.ByteVector
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Created by chris on 1/6/16.
@@ -103,7 +104,8 @@ sealed abstract class ScriptNumber extends ScriptConstant {
 }
 
 object ScriptNumber extends Factory[ScriptNumber] {
-
+  /** Represents the maximum size in bytes for a script element */
+  lazy val maximumElementSize = 4
   /** Represents the number zero inside of bitcoin's script language. */
   lazy val zero: ScriptNumber = ScriptNumberImpl(0, ByteVector.empty)
   /** Represents the number one inside of bitcoin's script language. */
@@ -122,8 +124,10 @@ object ScriptNumber extends Factory[ScriptNumber] {
     if (underlying == 0) zero else apply(ScriptNumberUtil.longToHex(underlying))
   }
 
-  def apply(p: ScriptProgram, requireMinimal: Boolean): ScriptProgram \/ ScriptNumber =
-    apply(p.stack(0).bytes, ScriptFlagUtil.requireMinimalData(p.flags)) match {
+  def apply(
+    p: ScriptProgram,
+    bytes: ByteVector): ScriptProgram \/ ScriptNumber =
+    apply(BitcoinSUtil.encodeHex(bytes), ScriptFlagUtil.requireMinimalData(p.flags)) match {
       case Success(v) => \/-(v)
       case Failure(e) =>
         logger.error(e.getLocalizedMessage)
@@ -133,7 +137,9 @@ object ScriptNumber extends Factory[ScriptNumber] {
   def apply(bytes: ByteVector, requireMinimal: Boolean): Try[ScriptNumber] = apply(BitcoinSUtil.encodeHex(bytes), requireMinimal)
 
   def apply(hex: String, requireMinimal: Boolean): Try[ScriptNumber] = {
-    if (requireMinimal && !BitcoinScriptUtil.isMinimalEncoding(hex)) {
+    if (hex.size > maximumElementSize) {
+      Failure(new IllegalArgumentException(s"Script number overflow. limit: $maximumElementSize size: ${hex.size}"))
+    } else if (requireMinimal && !BitcoinScriptUtil.isMinimalEncoding(hex)) {
       Failure(new IllegalArgumentException("The given hex was not the shortest encoding for the script number: " + hex))
     } else {
       val number = apply(hex)

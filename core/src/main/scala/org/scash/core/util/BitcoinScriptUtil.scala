@@ -1,8 +1,8 @@
 package org.scash.core.util
 /**
-  *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
-  *   Copyright (c) 2018 Flores Lorca (MIT License)
-  */
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018 Flores Lorca (MIT License)
+ */
 import org.scash.core.consensus.Consensus
 import org.scash.core.crypto.{ ECDigitalSignature, ECPublicKey, TxSigComponent }
 import org.scash.core.number.UInt32
@@ -184,6 +184,51 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
 
   def calculatePushOp(bytes: ByteVector): Seq[ScriptToken] = calculatePushOp(ScriptConstant(bytes))
 
+  def toMinimalEncoding(n: ByteVector): ScriptConstant = {
+    println("in minimal encoding")
+    if (BitcoinScriptUtil.isMinimalEncoding(n)) {
+      println(s"not encoded")
+      ScriptConstant(n)
+    } else {
+      val last = n.last
+      println(s"last $last hex ${ByteVector(last).toHex}")
+
+      def go2(i: Long): ByteVector = {
+        if (i == 0)
+          ByteVector.empty
+        else {
+          val b = n(i - 1)
+          if (b != 0x00) {
+            val r = if ((b & 0x80) >= 1) {
+              println("has sig")
+              println(s"current $n")
+              val t = n.update(i, last)
+                .slice(0, i + 1)
+              println(s"updated $t")
+              println(s"i ${i + 1}")
+              t
+            } else {
+              println("no sig")
+              println(s"current $n")
+              val a = (b | last).toByte
+              println(s"appending: ${ByteVector(a)} result ${n.update(i - 1, a)}")
+              println(s"current $n")
+              val t = n.update(i - 1, a)
+                .slice(0, i)
+              println(s"updated $t")
+              t
+            }
+            println(s"final $r")
+            r
+          } else go2(i - 1)
+        }
+      }
+      val vec = go2(n.size - 1)
+
+      ScriptConstant(vec)
+    }
+  }
+
   /**
    * Whenever a [[ScriptConstant]] is interpreted to a number BIP62 could enforce that number to be encoded
    * in the smallest encoding possible
@@ -200,9 +245,9 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
       // it would conflict with the sign bit. An example of this case
       // is +-255, which encode to 0xff00 and 0xff80 respectively.
       // (big-endian).
-      if (bytes.size <= 1 || (bytes(bytes.size - 2) & 0x80) == 0) {
+      if (bytes.size <= 1 || (bytes(bytes.size - 2) & 0x80) == 0)
         false
-      } else true
+      else true
     } else true
   }
 

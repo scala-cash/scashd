@@ -196,10 +196,6 @@ sealed abstract class ScriptInterpreter {
             case _ if p.script.intersect(Seq(OP_VERIF, OP_VERNOTIF)).nonEmpty =>
               logger.error("Script is invalid even when a OP_VERIF or OP_VERNOTIF occurs in an unexecuted OP_IF branch")
               loop(ScriptProgram(p, ScriptErrorBadOpCode), opCount)
-            //disabled splice operation
-            case _ if p.script.intersect(Seq(OP_NUM2BIN, OP_BIN2NUM)).nonEmpty =>
-              logger.error("Script is invalid because it contains a disabled splice operation")
-              loop(ScriptProgram(p, ScriptErrorDisabledOpCode), opCount)
             //disabled bitwise operations
             case _ if p.script.intersect(Seq(OP_INVERT)).nonEmpty =>
               logger.error("Script is invalid because it contains a disabled bitwise operation")
