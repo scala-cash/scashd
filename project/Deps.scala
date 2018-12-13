@@ -13,11 +13,12 @@ object Deps {
     val akkaStreamv = "2.5.12"
     val playv = "2.6.9"
     val scalazv = "7.2.26"
+    val scodecv = "1.10.3"
   }
 
   object Compile {
     val bouncycastle = "org.bouncycastle" % "bcprov-jdk15on" % V.bouncyCastle
-    val scodec = "org.scodec" %% "scodec-bits" % "1.1.5"
+    val scodec = "org.scodec" %% "scodec-core" % V.scodecv
     val slf4j = "org.slf4j" % "slf4j-api" % V.slf4j % "provided"
     val zeromq = "org.zeromq" % "jeromq" % V.zeromq
     val akkaHttp = "com.typesafe.akka" %% "akka-http" % V.akkav
