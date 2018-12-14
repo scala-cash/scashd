@@ -9,7 +9,6 @@ import org.scash.core.script
 import org.scash.core.script.constant.{ ScriptNumber, _ }
 import org.scash.core.script.result._
 import org.scash.core.script.ScriptProgram
-import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.util.{ BitcoinSLogger, BitcoinScriptUtil }
 import scalaz.{ -\/, \/- }
 import scodec.bits.ByteVector
@@ -60,30 +59,19 @@ sealed abstract class SpliceInterpreter {
    */
   def opNum2Bin(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_NUM2BIN), "Script top must be OP_NUM2BIN")
-    println(s"======input ${program.stack.map(_.bytes)}")
     (for {
       p <- script.checkBinary(program)
-      _ = println(p.stack)
       size <- ScriptNumber(p, p.stack.head.bytes)
-      _ = println(s"size $size")
-      _ = println(s"size as long ${size.toLong}")
       np <- scriptPushSize(p)(size.toLong)
-      _ = println(s"${np.stack.map(_.bytes)}")
     } yield {
 
       val bin = BitcoinScriptUtil.toMinimalEncoding(np.stack(1).bytes)
-      println(s"num: ${bin.bytes}")
+
       if (bin.size > size.toLong) {
         ScriptProgram(p, ScriptErrorImpossibleEncoding)
       } else if (bin.size == size.toLong) {
-        println(s"same size ${bin.size} size ${size.toLong} hex ${bin.hex}")
-        val np = ScriptProgram(p, ScriptConstant(bin.bytes) +: p.stack.tail.tail, p.script.tail)
-        println(s"final ${np.stack.map(_.bytes)} script ${np.script.map(_.bytes)}")
-        np
+        ScriptProgram(p, ScriptConstant(bin.bytes) +: p.stack.tail.tail, p.script.tail)
       } else {
-        println("different size")
-        println(s"diff size ${bin.size} size ${size.toLong}")
-
         val r = if (bin.size == 0) {
           ScriptConstant(ByteVector.fill(size.toLong)(0x00))
         } else {
@@ -93,9 +81,7 @@ sealed abstract class SpliceInterpreter {
           val nNum = bin.bytes.update(bin.size - 1, bit) ++ padding :+ signBit
           ScriptConstant(nNum)
         }
-        val p = ScriptProgram(np, r +: np.stack.tail.tail, np.script.tail)
-        println(s"final ${p.stack.map(_.bytes)} script ${p.script.map(_.bytes)}")
-        p
+        ScriptProgram(np, r +: np.stack.tail.tail, np.script.tail)
       }
     })
       .merge

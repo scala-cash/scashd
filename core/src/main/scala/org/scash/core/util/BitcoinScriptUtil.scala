@@ -184,50 +184,31 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
 
   def calculatePushOp(bytes: ByteVector): Seq[ScriptToken] = calculatePushOp(ScriptConstant(bytes))
 
-  def toMinimalEncoding(n: ByteVector): ScriptConstant = {
-    println("in minimal encoding")
+  def toMinimalEncoding(n: ByteVector): ScriptConstant =
     if (BitcoinScriptUtil.isMinimalEncoding(n)) {
-      println(s"not encoded")
       ScriptConstant(n)
     } else {
       val last = n.last
-      println(s"last $last hex ${ByteVector(last).toHex}")
 
-      def go2(i: Long): ByteVector = {
+      @tailrec
+      def go(i: Long): ByteVector = {
         if (i == 0)
           ByteVector.empty
         else {
           val b = n(i - 1)
           if (b != 0x00) {
-            val r = if ((b & 0x80) >= 1) {
-              println("has sig")
-              println(s"current $n")
-              val t = n.update(i, last)
-                .slice(0, i + 1)
-              println(s"updated $t")
-              println(s"i ${i + 1}")
-              t
+            if ((b & 0x80) >= 1) {
+              // We found a byte with it sign bit set so we need one more byte.
+              n.update(i, last).slice(0, i + 1)
             } else {
-              println("no sig")
-              println(s"current $n")
-              val a = (b | last).toByte
-              println(s"appending: ${ByteVector(a)} result ${n.update(i - 1, a)}")
-              println(s"current $n")
-              val t = n.update(i - 1, a)
-                .slice(0, i)
-              println(s"updated $t")
-              t
+              // the sign bit is clear, we can use it.
+              n.update(i - 1, (b | last).toByte).slice(0, i)
             }
-            println(s"final $r")
-            r
-          } else go2(i - 1)
+          } else go(i - 1)
         }
       }
-      val vec = go2(n.size - 1)
-
-      ScriptConstant(vec)
+      ScriptConstant(go(n.size - 1))
     }
-  }
 
   /**
    * Whenever a [[ScriptConstant]] is interpreted to a number BIP62 could enforce that number to be encoded

@@ -150,20 +150,26 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
       TestUtil.testProgramExecutionInProgress,
       List(ScriptNumber.zero, ScriptConstant.empty).reverse,
       List(OP_NUM2BIN))
-    println(p.stack)
     val p1 = SI.opNum2Bin(p)
-    println(p1.stack)
-    p1.stack.head must be(ScriptNumber.zero)
+    p1.stack.head must be(ScriptConstant.empty)
 
     10.to(Consensus.maxScriptElementSize).map { s =>
       val paddedZeroes = ByteVector.fill(s)(0x00)
+      val paddedNegZeroes = paddedZeroes :+ 0x80.toByte
+
       val p = ScriptProgram(
         TestUtil.testProgramExecutionInProgress,
         List(ScriptNumber(paddedZeroes.size), ScriptConstant.empty).reverse,
         List(OP_NUM2BIN))
-      println(p.stack)
+
+      val pn = ScriptProgram(
+        TestUtil.testProgramExecutionInProgress,
+        List(ScriptNumber(paddedNegZeroes.size), ScriptConstant.empty).reverse,
+        List(OP_NUM2BIN))
+
       val p1 = SI.opNum2Bin(p)
-      println(p1.stack)
+      val pn1 = SI.opNum2Bin(pn)
+      pn1.stack.head must be(ScriptConstant.empty)
       p1.stack.head must be(ScriptConstant.empty)
     }
   }
