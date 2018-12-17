@@ -6,7 +6,7 @@ package org.scash.core.script.splice
  */
 import org.scash.core.script.{ ExecutedScriptProgram, ScriptProgram }
 import org.scash.core.script.constant._
-import org.scash.core.script.result.{ ScriptErrorInvalidSplitRange, ScriptErrorInvalidStackOperation, ScriptErrorPushSize }
+import org.scash.core.script.result._
 import org.scash.core.util.{ BitcoinSUtil, TestUtil }
 import org.scalatest.FlatSpec
 import org.scash.core.TestHelpers
@@ -146,7 +146,6 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
   }
 
   it must "call OP_NUM2BIN correctly" in {
-<<<<<<< HEAD
     val f = compare(OP_NUM2BIN, SI.opNum2Bin) _
     val zero = ScriptNumber.zero
     val empty = ScriptConstant.empty
@@ -160,7 +159,7 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
     f(List(zero, empty), empty)
 
     0.to(Consensus.maxScriptElementSize - 1).map { s =>
-      println(s)
+
       val paddedZeroes = ByteVector.fill(s)(0x00)
       val paddedNegZeroes = paddedZeroes :+ 0x80.toByte
 
@@ -190,6 +189,33 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
     //Reductions
     f(List(ScriptNumber(5), ScriptNumber(ByteVector.fromValidHex("0xabcdefc2"))), bin3)
     f(List(ScriptNumber(5), ScriptNumber(ByteVector.fromValidHex("0xabcd7f42"))), bin4)
+
+    // NUM2BIN must not generate oversized push.
+    f(List(ScriptNumber(Consensus.maxScriptElementSize), ScriptNumber(ByteVector.empty)), ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0x00)))
+  }
+
+  it must "NUM2BIN errors" in {
+    val f = checkOpError(OP_NUM2BIN, SI.opNum2Bin) _
+    //Empty Stack error
+    f(Nil, ScriptErrorInvalidStackOperation)
+
+    //NUM2BIn require 2 elements on the stack
+    f(List(ScriptNumber.zero), ScriptErrorInvalidStackOperation)
+
+    f(List(ScriptNumber(ByteVector.empty), ScriptNumber(ByteVector.fromValidHex("0x0902"))), ScriptErrorPushSize)
+
+    //Impossible encoding
+    f(List(ScriptNumber(ByteVector.fromValidHex("0xabcdef80")), ScriptNumber(0x03)), ScriptErrorImpossibleEncoding)
+  }
+
+  it must "BIN2NUM errors" in {
+    val f = checkOpError(OP_BIN2NUM, SI.opBin2Num) _
+    //Empty Stack error
+    f(Nil, ScriptErrorInvalidStackOperation)
+
+    //Values that do not fit in 4 bytes are considered out of range for bin2num
+    f(List(ScriptConstant(ByteVector.fromValidHex("0xabcdefc280"))), ScriptErrorInvalidNumberRange)
+    f(List(ScriptConstant(ByteVector.fromValidHex("0x0000008080"))), ScriptErrorInvalidNumberRange)
   }
 }
 
