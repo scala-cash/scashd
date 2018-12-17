@@ -61,12 +61,13 @@ sealed abstract class SpliceInterpreter {
     require(program.script.headOption.contains(OP_NUM2BIN), "Script top must be OP_NUM2BIN")
     (for {
       p <- script.checkBinary(program)
+      _ = println(p.stack.head.bytes)
       size <- ScriptNumber(p, p.stack.head.bytes)
       np <- scriptPushSize(p)(size.toLong)
     } yield {
-
+      println(s" size: $size")
       val bin = BitcoinScriptUtil.toMinimalEncoding(np.stack(1).bytes)
-
+      println(s" size: $size bin: $bin")
       if (bin.size > size.toLong) {
         ScriptProgram(p, ScriptErrorImpossibleEncoding)
       } else if (bin.size == size.toLong) {

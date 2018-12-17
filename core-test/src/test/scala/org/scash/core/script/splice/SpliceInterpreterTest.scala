@@ -146,31 +146,50 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
   }
 
   it must "call OP_NUM2BIN correctly" in {
-    val p = ScriptProgram(
-      TestUtil.testProgramExecutionInProgress,
-      List(ScriptNumber.zero, ScriptConstant.empty).reverse,
-      List(OP_NUM2BIN))
-    val p1 = SI.opNum2Bin(p)
-    p1.stack.head must be(ScriptConstant.empty)
+    val f = compare(OP_NUM2BIN, SI.opNum2Bin) _
+    val zero = ScriptNumber.zero
+    val empty = ScriptConstant.empty
 
-    10.to(Consensus.maxScriptElementSize).map { s =>
+    // Merge leading byte when sign bit isn't used.
+    val k = 0x7F.toByte
+    val negK = 0xFF.toByte
+
+    //empty ones
+    f(List(zero, empty), empty)
+    f(List(zero, empty), empty)
+
+    0.to(Consensus.maxScriptElementSize - 1).map { s =>
+      println(s)
       val paddedZeroes = ByteVector.fill(s)(0x00)
       val paddedNegZeroes = paddedZeroes :+ 0x80.toByte
 
-      val p = ScriptProgram(
-        TestUtil.testProgramExecutionInProgress,
-        List(ScriptNumber(paddedZeroes.size), ScriptConstant.empty).reverse,
-        List(OP_NUM2BIN))
+      val paddedK = k +: ByteVector.fill(s)(0x00)
+      val paddedNegK =
+        if (s == 0)
+          ByteVector(negK)
+        else
+          ByteVector(negK & k) ++ ByteVector.fill(s - 1)(0x80 & k) :+ 0x80.toByte
 
-      val pn = ScriptProgram(
-        TestUtil.testProgramExecutionInProgress,
-        List(ScriptNumber(paddedNegZeroes.size), ScriptConstant.empty).reverse,
-        List(OP_NUM2BIN))
-
-      val p1 = SI.opNum2Bin(p)
-      val pn1 = SI.opNum2Bin(pn)
-      pn1.stack.head must be(ScriptConstant.empty)
-      p1.stack.head must be(ScriptConstant.empty)
+      f(List(ScriptNumber(paddedZeroes.size), empty), ScriptConstant(paddedZeroes))
+      f(List(ScriptNumber(paddedNegZeroes.size), empty), ScriptConstant(paddedNegZeroes))
+      f(List(ScriptNumber(paddedNegK.size), ScriptConstant(ByteVector(negK))), ScriptConstant(paddedNegK))
+      f(List(ScriptNumber(paddedK.size), ScriptNumber(ByteVector(k))), ScriptConstant(paddedK))
     }
+
+    val bin1 = ByteVector.fromValidHex("abcdef00")
+    val bin2 = ScriptConstant(ByteVector.fromValidHex("abcd7f00"))
+
+    // Some known values
+    f(List(ScriptNumber(4), ScriptNumber(bin1)), ScriptConstant(bin1))
+    f(List(ScriptNumber(4), ScriptNumber(ByteVector.fromValidHex("abcd7f"))), bin2)
+
+    val bin3 = ScriptConstant(ByteVector.fromValidHex("0xabcdef4280"))
+    val bin4 = ScriptConstant(ByteVector.fromValidHex("0xabcd7f4200"))
+
+    //Reductions
+    f(List(ScriptNumber(5), ScriptNumber(ByteVector.fromValidHex("0xabcdefc2"))), bin3)
+    f(List(ScriptNumber(5), ScriptNumber(ByteVector.fromValidHex("0xabcd7f42"))), bin4)
   }
+
 }
+

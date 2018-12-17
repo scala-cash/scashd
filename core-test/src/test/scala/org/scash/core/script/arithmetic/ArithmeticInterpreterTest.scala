@@ -11,7 +11,6 @@ import org.scash.core.util.{ ScriptProgramTestUtil, TestUtil }
 import org.scalatest.FlatSpec
 import org.scash.core.TestHelpers
 import org.scash.core.policy.Policy
-import org.scash.core.script.ScriptProgram.Stack
 import scodec.bits.ByteVector
 import scodec.bits._
 

@@ -2,7 +2,7 @@ package org.scash.core
 
 import org.scalatest.MustMatchers
 import org.scash.core.script.{ ExecutedScriptProgram, ScriptProgram }
-import org.scash.core.script.constant.{ ScriptOperation, ScriptToken }
+import org.scash.core.script.constant.{ ScriptConstant, ScriptOperation, ScriptToken }
 import org.scash.core.script.result.ScriptError
 import org.scash.core.util.TestUtil
 
@@ -28,5 +28,24 @@ trait TestHelpers extends MustMatchers {
       case e: ExecutedScriptProgram => e.error must be(Some(ex))
       case _ => assert(false)
     }
+
+  def compare(
+    op: ScriptOperation,
+    interpreter: ScriptProgram => ScriptProgram)(
+    s: List[ScriptToken],
+    ex: ScriptToken) = {
+
+    val rebuiltEx = if (s.tail.head.bytes.isEmpty && ex.size > 0) {
+      ScriptConstant(ex.bytes.update(ex.bytes.size - 1, (ex.bytes.last & 0x7F).toByte))
+    } else ex
+
+    println(s"==== INPUT ${s}")
+    val p = ScriptProgram(TestUtil.testProgramExecutionInProgress, s, List(op))
+
+    val e = interpreter(p).stack
+    println(s"RESULT : ${e} expected $rebuiltEx")
+    e.head must be(rebuiltEx)
+
+  }
 }
 
