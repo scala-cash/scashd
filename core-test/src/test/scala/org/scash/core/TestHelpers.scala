@@ -34,11 +34,13 @@ trait TestHelpers extends MustMatchers {
     interpreter: ScriptProgram => ScriptProgram)(
     s: List[ScriptToken],
     ex: ScriptToken) = {
-    val rebuiltEx = if (s.tail.head.bytes.isEmpty && ex.size > 0) {
-      ScriptConstant(ex.bytes.update(ex.bytes.size - 1, (ex.bytes.last & 0x7F).toByte))
-    } else ex
-    val p = ScriptProgram(TestUtil.testProgramExecutionInProgress, s, List(op))
+    val rebuiltEx = s.tail.headOption.map { n =>
+      if (n.bytes.isEmpty && ex.size > 0) {
+        ScriptConstant(ex.bytes.update(ex.bytes.size - 1, (ex.bytes.last & 0x7F).toByte))
+      } else ex
+    }.getOrElse(ex)
 
+    val p = ScriptProgram(TestUtil.testProgramExecutionInProgress, s, List(op))
     interpreter(p).stack.head must be(rebuiltEx)
   }
 }

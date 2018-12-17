@@ -98,11 +98,11 @@ sealed abstract class SpliceInterpreter {
     if (p.stack.isEmpty) {
       ScriptProgram(p, ScriptErrorInvalidStackOperation)
     } else {
-      val bin = BitcoinScriptUtil.toMinimalEncoding(p.stack.head.bytes)
-      if (!BitcoinScriptUtil.isMinimalEncoding(bin) || (bin.size > 4)) {
+      val num = BitcoinScriptUtil.toMinimalEncoding(p.stack.head.bytes)
+      if (!BitcoinScriptUtil.isMinimalEncoding(num) || (num.size > 4)) {
         ScriptProgram(p, ScriptErrorInvalidNumberRange)
       } else {
-        ScriptProgram(p, bin +: p.stack.tail, p.script.tail)
+        ScriptProgram(p, num +: p.stack.tail, p.script.tail)
       }
     }
   }

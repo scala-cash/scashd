@@ -194,6 +194,53 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
     f(List(ScriptNumber(Consensus.maxScriptElementSize), ScriptNumber(ByteVector.empty)), ScriptConstant(ByteVector.fill(Consensus.maxScriptElementSize)(0x00)))
   }
 
+  it must "call OP_BIN2NUM correctly" in {
+    val f = compare(OP_BIN2NUM, SI.opBin2Num) _
+
+    val zero = ScriptNumber.zero
+    val empty = ScriptConstant.empty
+
+    // Merge leading byte when sign bit isn't used.
+    val k = 0x7F.toByte
+    val negK = 0xFF.toByte
+
+    //empty ones
+    f(List(empty), zero)
+
+    0.to(Consensus.maxScriptElementSize - 1).map { s =>
+      val paddedZeroes = ByteVector.fill(s)(0x00)
+      val paddedNegZeroes = paddedZeroes :+ 0x80.toByte
+
+      val paddedK = k +: ByteVector.fill(s)(0x00)
+      val paddedNegK =
+        if (s == 0)
+          ByteVector(negK)
+        else
+          ByteVector(negK & k) ++ ByteVector.fill(s - 1)(0x80 & k) :+ 0x80.toByte
+
+      f(List(ScriptConstant(paddedZeroes)), zero)
+      f(List(ScriptConstant(paddedNegZeroes)), zero)
+      f(List(ScriptConstant(paddedNegK)), ScriptNumber(ByteVector(negK)))
+      f(List(ScriptConstant(paddedK)), ScriptNumber(ByteVector(k)))
+
+    }
+
+    val bin1 = ByteVector.fromValidHex("abcdef00")
+    val bin2 = ScriptConstant(ByteVector.fromValidHex("abcd7f00"))
+
+    // Some known values
+    f(List(ScriptConstant(bin1)), ScriptNumber(bin1))
+    f(List(bin2), ScriptNumber(ByteVector.fromValidHex("abcd7f")))
+
+    val bin3 = ScriptConstant(ByteVector.fromValidHex("0xabcdef4280"))
+    val bin4 = ScriptConstant(ByteVector.fromValidHex("0xabcd7f4200"))
+
+    //Reductions
+    f(List(bin3), ScriptNumber(ByteVector.fromValidHex("0xabcdefc2")))
+    f(List(bin4), ScriptNumber(ByteVector.fromValidHex("0xabcd7f42")))
+
+  }
+
   it must "NUM2BIN errors" in {
     val f = checkOpError(OP_NUM2BIN, SI.opNum2Bin) _
     //Empty Stack error
@@ -217,5 +264,6 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
     f(List(ScriptConstant(ByteVector.fromValidHex("0xabcdefc280"))), ScriptErrorInvalidNumberRange)
     f(List(ScriptConstant(ByteVector.fromValidHex("0x0000008080"))), ScriptErrorInvalidNumberRange)
   }
+
 }
 
