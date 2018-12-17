@@ -146,6 +146,7 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
   }
 
   it must "call OP_NUM2BIN correctly" in {
+<<<<<<< HEAD
     val f = compare(OP_NUM2BIN, SI.opNum2Bin) _
     val zero = ScriptNumber.zero
     val empty = ScriptConstant.empty
@@ -190,6 +191,5 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
     f(List(ScriptNumber(5), ScriptNumber(ByteVector.fromValidHex("0xabcdefc2"))), bin3)
     f(List(ScriptNumber(5), ScriptNumber(ByteVector.fromValidHex("0xabcd7f42"))), bin4)
   }
-
 }
 

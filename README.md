@@ -9,7 +9,7 @@ this is a fork of bitcoin-s which is a library for bitcoin core. Work is still o
 - [X] Enforce [UAHF rules](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/uahf-technical-spec.md)
 - [X] Enforce [Nov17 HF Rules](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/nov-13-hardfork-spec.md)
 - [ ] Support [cashaddr](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/cashaddr.md)
-- [ ] Integrate [May18 HF OP_CODES](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-hardfork.md)( ~~CAT, SPLIT, AND, XOR, OR, DIV, MOD~~, BIN2NUM, NUM2BIN) (in progress)
+- [X] Integrate [May18 HF OP_CODES](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-hardfork.md)( CAT, SPLIT, AND, XOR, OR, DIV, MOD, BIN2NUM, NUM2BIN) (in progress)
 - [ ] Integrate [OP_CHECKDATASIG](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/op_checkdatasig.md)
 - [ ] Enforce [Nov18 HF Rules](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/2018-nov-upgrade.md)
 - [ ] Implement features in [May19 HF](https://github.com/bitcoincashorg/bitcoincash.org/pull/143)
