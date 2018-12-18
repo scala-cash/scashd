@@ -238,55 +238,10 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
    * https://github.com/bitcoin/bitcoin/blob/a6a860796a44a2805a58391a009ba22752f64e32/src/script/script.h#L220-L237
    */
   def isMinimalEncoding(hex: String): Boolean = isMinimalEncoding(BitcoinSUtil.decodeHex(hex))
-  /**
-   * Checks the [[ECPublicKey]] encoding according to bitcoin core's function:
-   * [[https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L202]].
-   */
-  def checkPubKeyEncoding(key: ECPublicKey, program: ScriptProgram): Boolean = checkPubKeyEncoding(key, program.flags)
-
-  def checkPubKeyEncoding(key: ECPublicKey, flags: Seq[ScriptFlag]): Boolean = {
-    if (ScriptFlagUtil.requireStrictEncoding(flags) &&
-      !isCompressedOrUncompressedPubKey(key)) false else true
-  }
-
-  /**
-   * Returns true if the key is compressed or uncompressed, false otherwise
-   * [[https://github.com/Bitcoin-ABC/bitcoin-abc/blob/058a6c027b5d4749b4fa23a0ac918e5fc04320e8/src/script/sigencoding.cpp#L217]]
-   * @param key the public key that is being checked
-   * @return true if the key is compressed/uncompressed otherwise false
-   */
-  def isCompressedOrUncompressedPubKey(key: ECPublicKey): Boolean = key.bytes.size match {
-    case 33 =>
-      // Compressed public key: must start with 0x02 or 0x03.
-      key.bytes.get(0) == 0x02 || key.bytes.get(0) == 0x03
-    case 65 =>
-      //Non-compressed public key must start with 0x04
-      key.bytes.get(0) == 0x04
-    case _ =>
-      // Non canonical public keys are invalid
-      false
-  }
-
-  /** Checks if the given public key is a compressed public key */
-  def isCompressedPubKey(key: ECPublicKey): Boolean = {
-    (key.bytes.size == 33) && (key.bytes.head == 0x02 || key.bytes.head == 0x03)
-  }
 
   def minimalScriptNumberRepresentation(num: ScriptNumber): ScriptNumber = {
     val op = ScriptNumberOperation.fromNumber(num.toLong)
     if (op.isDefined) op.get else num
-  }
-
-  /**
-   * Determines if the given pubkey is valid in accordance to the given [[ScriptFlag]].
-   * Mimics this function inside of Bitcoin Core
-   * [[https://github.com/bitcoin/bitcoin/blob/528472111b4965b1a99c4bcf08ac5ec93d87f10f/src/script/interpreter.cpp#L214-L223]]
-   */
-  def isValidPubKeyEncoding(pubKey: ECPublicKey, flags: Seq[ScriptFlag]): Option[ScriptError] = {
-    if (ScriptFlagUtil.requireStrictEncoding(flags) &&
-      !BitcoinScriptUtil.isCompressedOrUncompressedPubKey(pubKey)) {
-      Some(ScriptErrorPubKeyType)
-    } else None
   }
 
   /**
@@ -351,13 +306,6 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
     if (program.lastCodeSeparator.isDefined) {
       program.originalScript.slice(program.lastCodeSeparator.get + 1, program.originalScript.size)
     } else program.originalScript
-  }
-
-  private def parseScriptEither(scriptEither: Either[(Seq[ScriptToken], ScriptPubKey), ScriptError]): Seq[ScriptToken] = scriptEither match {
-    case Left((_, scriptPubKey)) =>
-      logger.debug("Script pubkey asm inside calculateForSigning: " + scriptPubKey.asm)
-      scriptPubKey.asm
-    case Right(_) => Nil //error
   }
 
   /**

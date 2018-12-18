@@ -97,6 +97,13 @@ trait ScriptFlagUtil {
    * See: https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2016-August/013014.html
    */
   def minimalIfEnabled(flags: Seq[ScriptFlag]): Boolean = flags.contains(ScriptVerifyMinimalIf)
+
+  /**
+   * Requires compressed pubkey type
+   * @param f
+   * @return
+   */
+  def requireCompressedPubKey(f: Seq[ScriptFlag]): Boolean = f.contains(ScriptVerifyCompressedPubkeytype)
 }
 
 object ScriptFlagUtil extends ScriptFlagUtil

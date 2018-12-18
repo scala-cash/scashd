@@ -1,20 +1,22 @@
 package org.scash.core.script.crypto
-
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018-2019 The Scash Developers (MIT License)
+ */
 import org.scash.core.consensus.Consensus
 import org.scash.core.crypto._
+import org.scash.core.script
 import org.scash.core.script.constant._
 import org.scash.core.script.control.{ ControlOperationsInterpreter, OP_VERIFY }
-import org.scash.core.script.flag.ScriptFlagUtil
+import org.scash.core.script.flag.{ ScriptEnableCheckDataSig, ScriptFlagUtil }
 import org.scash.core.script.result._
 import org.scash.core.script.{ ExecutedScriptProgram, ExecutionInProgressScriptProgram, PreExecutionScriptProgram, ScriptProgram }
 import org.scash.core.util.{ BitcoinSLogger, BitcoinScriptUtil, CryptoUtil }
+import scalaz.{ -\/, \/, \/- }
 import scodec.bits.ByteVector
 
 import scala.annotation.tailrec
 
-/**
- * Created by chris on 1/6/16.
- */
 sealed abstract class CryptoInterpreter {
 
   private def logger = BitcoinSLogger.logger
@@ -53,7 +55,7 @@ sealed abstract class CryptoInterpreter {
    * The entire transaction's outputs, inputs, and script (from the most
    * recently-executed OP_CODESEPARATOR to the end) are hashed.
    * The signature used by [[OP_CHECKSIG]] must be a valid signature for this hash and public key.
-   * [[https://github.com/bitcoin/bitcoin/blob/528472111b4965b1a99c4bcf08ac5ec93d87f10f/src/script/interpreter.cpp#L880]]
+   * sig pubkey --> bool
    */
   def opCheckSig(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_CHECKSIG), "Script top must be OP_CHECKSIG")
@@ -243,6 +245,47 @@ sealed abstract class CryptoInterpreter {
   }
 
   /**
+   * OP_CHECKDATASIG checks whether a signature is valid with respect to a message and a public key.
+   * permits data to be imported into a script, and have its validity checked against some signing authority such as an "Oracle".
+   * If the stack is well formed, then OP_CHECKDATASIG pops the top three elements [<sig>, <msg>, <pubKey>]
+   * from the stack and pushes true onto the stack if <sig> is valid with respect to the raw single-SHA256
+   * hash of <msg> and <pubKey> using the secp256k1 elliptic curve. Otherwise,
+   * it pops three elements and pushes false onto the stack in the case that <sig> is the empty string and fails in all other cases.
+   * https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/op_checkdatasig.md
+   */
+  def opCheckDataSig(program: ScriptProgram): ScriptProgram = ???
+
+  /*{
+    require(program.script.headOption.contains(OP_CHECKDATASIG), "Script top must be OP_CHECKDATASIG")
+    (for {
+      p0 <- isCheckDataSigEnabled(program)
+      p <- script.checkTriary(p0)
+    } yield {
+      val sig = p.stack(2)
+      val msg = p.stack(1)
+      val pubKey = p.stack.head
+
+
+      ScriptProgram(p, op +: p.stack.drop(3), p.script.tail)
+    }).merge
+  }
+*/
+  /** Runs [[OP_CHECKDATASIG]] with an [[OP_VERIFY]] afterwards */
+  def opCheckDataSigVerify(p: ScriptProgram): ScriptProgram = {
+    //  require(p.script.headOption.contains(OP_CHECKDATASIGVERIFY), "Script top must be OP_CHECKDATASIGVERIFY")
+    ???
+  }
+
+  private def isCheckDataSigEnabled(p: => ScriptProgram): ScriptProgram \/ ScriptProgram = {
+    if (p.flags.contains(ScriptEnableCheckDataSig))
+      \/-(p)
+    else {
+      logger.error("CHECKDATASIG not enabled")
+      -\/(ScriptProgram(p, ScriptErrorBadOpCode))
+    }
+
+  }
+  /**
    * This is a higher order function designed to execute a hash function on the stack top of the program
    * For instance, we could pass in CryptoUtil.sha256 function as the 'hashFunction' argument, which would then
    * apply sha256 to the stack top
@@ -261,7 +304,10 @@ sealed abstract class CryptoInterpreter {
     }
   }
 
-  private def handleSignatureValidation(program: ScriptProgram, result: TransactionSignatureCheckerResult, restOfStack: Seq[ScriptToken]): ScriptProgram = result match {
+  private def handleSignatureValidation(
+    program: ScriptProgram,
+    result: TransactionSignatureCheckerResult,
+    restOfStack: Seq[ScriptToken]): ScriptProgram = result match {
     case SignatureValidationSuccess =>
       //means that all of the signatures were correctly encoded and
       //that all of the signatures were valid signatures for the given

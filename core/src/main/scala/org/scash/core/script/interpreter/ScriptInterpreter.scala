@@ -315,6 +315,7 @@ sealed abstract class ScriptInterpreter {
                   val newOpCount = calcOpCount(opCount, OP_CHECKMULTISIGVERIFY) + BitcoinScriptUtil.numPossibleSignaturesOnStack(program).toInt
                   loop(newProgram, newOpCount)
               }
+            case OP_CHECKDATASIG :: t => loop(CryptoInterpreter.opCheckDataSig(p), calcOpCount(opCount, OP_CHECKDATASIG))
             //reserved operations
             case OP_NOP :: t =>
               //script discourage upgradeable flag does not apply to a OP_NOP

@@ -241,7 +241,7 @@ sealed abstract class ECPublicKey extends BaseECKey {
       //verification function from spongy castle, this is needed because early blockchain
       //transactions can have weird non strict der encoded digital signatures
       //bitcoin core implements this functionality here:
-      //https://github.com/bitcoin/bitcoin/blob/master/src/pubkey.cpp#L16-L165
+      //https://github.com/floreslorca/bitcoin-abc/blob/master/src/pubkey.cpp#L16-168
       //TODO: Implement functionality in Bitcoin Core linked above
       oldVerify(data, signature)
     } else result

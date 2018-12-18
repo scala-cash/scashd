@@ -1,10 +1,11 @@
 package org.scash.core.script.flag
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018-2019 The SCash Developers (MIT License)
+ */
 
 /**
- * Created by chris on 3/23/16.
- * This represents all of the script flags found inside of
  * https://github.com/Bitcoin-ABC/bitcoin-abc/blob/master/src/script/script_flags.h
- * these flags indicate how to evaluate a certain script
  */
 sealed trait ScriptFlag {
   /** The flag's representation represented as an integer. */
@@ -141,3 +142,8 @@ case object ScriptEnableReplayProtection extends ScriptFlag {
   override def name = "REPLAY_PROTECTION"
 }
 
+/** Is OP_CHECKDATASIG and variant enabled.*/
+case object ScriptEnableCheckDataSig extends ScriptFlag {
+  override def flag = 1 << 18
+  override def name = "CHECKDATASIG"
+}

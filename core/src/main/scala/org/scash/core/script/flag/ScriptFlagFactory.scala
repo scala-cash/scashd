@@ -16,7 +16,7 @@ trait ScriptFlagFactory {
     ScriptVerifyNullDummy, ScriptVerifyDiscourageUpgradableNOPs, ScriptVerifyCleanStack,
     ScriptVerifyCheckLocktimeVerify, ScriptVerifyCheckSequenceVerify,
     ScriptVerifyMinimalIf, ScriptVerifyNullFail, ScriptVerifyCompressedPubkeytype,
-    ScriptEnableSigHashForkId, ScriptEnableReplayProtection)
+    ScriptEnableSigHashForkId, ScriptEnableReplayProtection, ScriptEnableCheckDataSig)
 
   /** Takes in a string and tries to match it with a [[ScriptFlag]]. */
   def fromString(str: String): Option[ScriptFlag] = {

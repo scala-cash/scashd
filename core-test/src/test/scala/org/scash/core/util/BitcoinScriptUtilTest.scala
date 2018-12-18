@@ -1,6 +1,5 @@
 package org.scash.core.util
 
-import org.scash.core.crypto.ECPublicKey
 import org.scash.core.script.constant._
 import org.scash.core.script.crypto._
 import org.scash.core.script.locktime.OP_CHECKLOCKTIMEVERIFY
@@ -168,13 +167,6 @@ class BitcoinScriptUtilTest extends FlatSpec with MustMatchers {
 
     BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("ffff7f80")) must be(false)
     BitcoinScriptUtil.isMinimalEncoding(ScriptConstant("ffff7f00")) must be(false)
-  }
-
-  it must "check a public key's encoding" in {
-    //pubkeys must be compressed or uncompressed or else that are not validly encoded
-    val key = ECPublicKey("00")
-    val program = TestUtil.testProgram
-    BitcoinScriptUtil.checkPubKeyEncoding(key, program) must be(false)
   }
 
   it must "determine if script number is correctly minimally-encoded" in {

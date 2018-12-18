@@ -7,6 +7,8 @@ import org.scash.core.util.{ BitcoinSLogger, BitcoinSUtil, BitcoinScriptUtil }
 import org.scash.core.crypto
 import org.scash.core.protocol.script.ScriptPubKey
 import org.scash.core.protocol.transaction.TransactionOutput
+import org.scash.core.script.ScriptProgram
+import scalaz.\/
 import scodec.bits.ByteVector
 
 import scala.annotation.tailrec
@@ -33,7 +35,7 @@ trait TransactionSignatureChecker extends BitcoinSLogger {
   def checkSignature(txSignatureComponent: TxSigComponent, script: Seq[ScriptToken],
     pubKey: ECPublicKey, signature: ECDigitalSignature, flags: Seq[ScriptFlag]): TransactionSignatureCheckerResult = {
     logger.debug("Signature: " + signature)
-    val pubKeyEncodedCorrectly = BitcoinScriptUtil.isValidPubKeyEncoding(pubKey, flags)
+    val pubKeyEncodedCorrectly = SigEncoding.checkPubKeyEncoding(pubKey, flags)
     if (ScriptFlagUtil.requiresStrictDerEncoding(flags) && !DERSignatureUtil.isValidSignatureEncoding(signature)) {
       logger.error("Signature was not stricly encoded der: " + signature.hex)
       SignatureValidationErrorNotStrictDerEncoding
@@ -45,7 +47,7 @@ trait TransactionSignatureChecker extends BitcoinSLogger {
       logger.error("signature: " + signature.hex)
       logger.error("Hash type was not defined on the signature, got: " + signature.bytes.last)
       SignatureValidationErrorHashType
-    } else if (pubKeyEncodedCorrectly.isDefined) {
+    } else if (pubKeyEncodedCorrectly.isLeft) {
       val result = SignatureValidationErrorPubKeyEncoding
       logger.error("The public key given for signature checking was not encoded correctly, err: " + result)
       result
