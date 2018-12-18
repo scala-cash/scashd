@@ -184,9 +184,9 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
 
   def calculatePushOp(bytes: ByteVector): Seq[ScriptToken] = calculatePushOp(ScriptConstant(bytes))
 
-  def toMinimalEncoding(n: ByteVector): ScriptNumber =
+  def toMinimalEncoding(n: ByteVector): ScriptConstant =
     if (BitcoinScriptUtil.isMinimalEncoding(n)) {
-      ScriptNumber(n)
+      ScriptConstant(n)
     } else {
       val last = n.last
 
@@ -207,7 +207,7 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
           } else go(i - 1)
         }
       }
-      ScriptNumber(go(n.size - 1))
+      ScriptConstant(go(n.size - 1))
     }
 
   /**

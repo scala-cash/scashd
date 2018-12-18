@@ -102,7 +102,7 @@ sealed abstract class SpliceInterpreter {
       if (!BitcoinScriptUtil.isMinimalEncoding(num) || (num.size > 4)) {
         ScriptProgram(p, ScriptErrorInvalidNumberRange)
       } else {
-        ScriptProgram(p, num +: p.stack.tail, p.script.tail)
+        ScriptProgram(p, ScriptNumber(num.bytes) +: p.stack.tail, p.script.tail)
       }
     }
   }
