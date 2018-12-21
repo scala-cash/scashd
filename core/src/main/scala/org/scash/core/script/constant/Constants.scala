@@ -4,7 +4,7 @@ import org.scash.core.consensus.Consensus
 import org.scash.core.number.Int64
 import org.scash.core.protocol.NetworkElement
 import org.scash.core.script.flag.ScriptFlagUtil
-import org.scash.core.script.result.ScriptErrorUnknownError
+import org.scash.core.script.result.{ ScriptError, ScriptErrorUnknownError }
 import org.scash.core.util.{ BitcoinSUtil, BitcoinScriptUtil, Factory }
 import org.scash.core.script.{ ScriptOperationFactory, ScriptProgram }
 import scalaz.{ -\/, \/, \/- }
@@ -101,6 +101,12 @@ sealed abstract class ScriptNumber extends ScriptConstant {
 
   /** The underlying number of the [[ScriptNumber]]. */
   protected def underlying: Long
+
+  /**
+   * This function checks if a number is <= 4 bytes in size
+   * We cannot perform arithmetic operations on bitcoin numbers that are larger than 4 bytes.
+   */
+  def isLargerThan4Bytes: Boolean = bytes.size > ScriptNumber.maximumElementSize
 }
 
 object ScriptNumber extends Factory[ScriptNumber] {
@@ -115,14 +121,34 @@ object ScriptNumber extends Factory[ScriptNumber] {
   /** Bitcoin has a numbering system which has a negative zero. */
   lazy val negativeZero: ScriptNumber = fromHex("80")
 
+  //DANGEROUS FUNCTION TO CALL. avoid calling apply(b: ByteVector) as well
   def fromBytes(bytes: ByteVector) = {
     if (bytes.isEmpty) zero
     else ScriptNumberImpl(ScriptNumberUtil.toLong(bytes), bytes)
   }
 
-  def apply(underlying: Long): ScriptNumber = {
+  def apply(underlying: Long): ScriptNumber =
     if (underlying == 0) zero else apply(ScriptNumberUtil.longToHex(underlying))
-  }
+
+  def apply(
+    requireMinimal: Boolean,
+    maxSize: Int = maximumElementSize)(
+    bytes: ByteVector): ScriptError \/ ScriptNumber =
+    if (bytes.size > maximumElementSize) {
+      logger.error(s"Script number overflow limit: $maximumElementSize size: ${bytes.size}")
+      -\/(ScriptErrorUnknownError)
+    } else if (requireMinimal && !BitcoinScriptUtil.isMinimalEncoding(bytes)) {
+      logger.error("The given bytes was not the shortest encoding for the script number: " + bytes)
+      -\/(ScriptErrorUnknownError)
+    } else {
+      \/-(fromBytes(bytes))
+    }
+
+  def apply(
+    p: ScriptProgram,
+    token: ScriptToken): ScriptProgram \/ ScriptNumber =
+    apply(ScriptFlagUtil.requireMinimalData(p.flags))(token.bytes)
+      .leftMap(ScriptProgram(p, _))
 
   def apply(
     p: ScriptProgram,

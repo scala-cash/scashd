@@ -185,33 +185,23 @@ sealed abstract class ArithmeticInterpreter {
   }
 
   /** Returns 1 if x is within the specified range (left-inclusive), 0 otherwise. */
-  def opWithin(program: ScriptProgram): ScriptProgram = {
-    require(
-      program.script.headOption.contains(OP_WITHIN),
-      "Script top must be OP_WITHIN")
-    if (program.stack.size < 3) {
-      logger.error("OP_WITHIN requires at least 3 elements on the stack")
-      ScriptProgram(program, ScriptErrorInvalidStackOperation)
-    } else {
-      val c = ScriptNumber(program.stack.head.bytes)
-      val b = ScriptNumber(program.stack.tail.head.bytes)
-      val a = ScriptNumber(program.stack.tail.tail.head.bytes)
-      if (ScriptFlagUtil.requireMinimalData(program.flags) && (!BitcoinScriptUtil.isMinimalEncoding(c) ||
-        !BitcoinScriptUtil.isMinimalEncoding(b) || !BitcoinScriptUtil.isMinimalEncoding(a))) {
-        logger.error("The constant you gave us is not encoded in the shortest way possible")
-        ScriptProgram(program, ScriptErrorUnknownError)
-      } else if (isLargerThan4Bytes(c) || isLargerThan4Bytes(b) || isLargerThan4Bytes(a)) {
-        //pretty sure that an error is thrown inside of CScriptNum which in turn is caught by interpreter.cpp here
-        //https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L999-L1002
-        logger.error("Cannot perform arithmetic operation on a number larger than 4 bytes, one of these three numbers is larger than 4 bytes: "
-          + c + " " + b + " " + a)
-        ScriptProgram(program, ScriptErrorUnknownError)
-      } else {
-        val isWithinRange = a >= b && a < c
-        val newStackTop = if (isWithinRange) OP_TRUE else OP_FALSE
-        ScriptProgram(program, newStackTop :: program.stack.tail.tail.tail, program.script.tail)
-      }
+  def opWithin(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_WITHIN), "Script top must be OP_WITHIN")
+    val fNum = ScriptNumber(ScriptFlagUtil.requireMinimalData(p.flags)) _
+    val exec = for {
+      _ <- script.checkTriary(p)
+      c <- fNum(p.stack.head.bytes)
+      b <- fNum(p.stack.tail.head.bytes)
+      a <- fNum(p.stack.tail.tail.head.bytes)
+    } yield {
+      val newStackTop = if (a >= b && a < c) OP_TRUE else OP_FALSE
+      ScriptProgram(p, newStackTop :: p.stack.drop(3), p.script.tail)
     }
+
+    exec.leftMap { err =>
+      logger.error(s"OP_WITHIN crashed with $err")
+      ScriptProgram(p, err)
+    }.merge
   }
 
   /**
@@ -245,17 +235,13 @@ sealed abstract class ArithmeticInterpreter {
    * Returns the top object in the stack as ScriptNumber. Otherwise it will return
    * the program with the indicated Script error
    */
-  @tailrec
   private def unaryScriptNumber(program: ScriptProgram): ScriptProgram \/ ScriptNumber = {
     program.stack.headOption match {
       case None =>
         logger.error("We need one stack element for performing a unary arithmetic operation")
         -\/(ScriptProgram(program, ScriptErrorInvalidStackOperation))
       case Some(s: ScriptNumber) =>
-        if (ScriptFlagUtil.requireMinimalData(program.flags) && !BitcoinScriptUtil.isMinimalEncoding(s)) {
-          logger.error("The number you gave us is not encoded in the shortest way possible")
-          -\/(ScriptProgram(program, ScriptErrorMinimalData))
-        } else if (isLargerThan4Bytes(s)) {
+        if (s.isLargerThan4Bytes) {
           logger.error("Cannot perform arithmetic operation on a number larger than 4 bytes, here is the number: " + s)
           -\/(ScriptProgram(program, ScriptErrorUnknownError))
         } else \/-(s)
@@ -281,7 +267,7 @@ sealed abstract class ArithmeticInterpreter {
       if (ScriptFlagUtil.requireMinimalData(program.flags) && (!BitcoinScriptUtil.isMinimalEncoding(x) || !BitcoinScriptUtil.isMinimalEncoding(y))) {
         logger.error("The constant you gave us is not encoded in the shortest way possible")
         -\/(ScriptProgram(program, ScriptErrorUnknownError))
-      } else if (isLargerThan4Bytes(x) || isLargerThan4Bytes(y)) {
+      } else if (x.isLargerThan4Bytes || y.isLargerThan4Bytes) {
         logger.error("Cannot perform arithmetic operation on a number larger than 4 bytes, one of these two numbers is larger than 4 bytes: " + x + " " + y)
         -\/(ScriptProgram(program, ScriptErrorUnknownError))
       } else {
@@ -297,12 +283,6 @@ sealed abstract class ArithmeticInterpreter {
       logger.error("The top two stack items must be script numbers to perform an arithmetic operation")
       -\/(ScriptProgram(program, ScriptErrorUnknownError))
   }
-
-  /**
-   * This function checks if a number is <= 4 bytes in size
-   * We cannot perform arithmetic operations on bitcoin numbers that are larger than 4 bytes.
-   */
-  private def isLargerThan4Bytes(scriptNumber: ScriptNumber): Boolean = scriptNumber.bytes.size > 4
 
 }
 
