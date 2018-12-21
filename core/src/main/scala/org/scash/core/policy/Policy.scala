@@ -38,7 +38,7 @@ sealed abstract class Policy {
     ScriptVerifyDerSig,
     ScriptVerifyLowS,
     ScriptVerifyNullDummy,
-    ScriptVerifySigPushOnly,
+    //ScriptVerifySigPushOnly,
     ScriptVerifyMinimalData,
     ScriptVerifyDiscourageUpgradableNOPs,
     ScriptVerifyCleanStack,

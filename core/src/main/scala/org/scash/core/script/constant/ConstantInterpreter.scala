@@ -93,7 +93,7 @@ sealed abstract class ConstantInterpreter {
     //for the case when we have the minimal data flag and the bytes to push onto stack is represented by the
     //constant telling OP_PUSHDATA how many bytes need to go onto the stack
     //for instance OP_PUSHDATA1 OP_0
-    val scriptNumOp = program.script(1).bytes.headOption.map(b => ScriptNumberOperation.fromNumber(b.toInt))
+    val scriptNumOp = program.script(1).bytes.headOption.flatMap(b => ScriptNumberOperation.fromNumber(b.toInt))
 
     if (ScriptFlagUtil.requireMinimalData(program.flags) && program.script(1).bytes.size == 1 &&
       scriptNumOp.isDefined) {
