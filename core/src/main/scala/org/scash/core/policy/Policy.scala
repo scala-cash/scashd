@@ -30,14 +30,15 @@ sealed abstract class Policy {
     ScriptVerifyNullFail)
 
   /**
-   * The default script verify flags used to validate the blockchain
-   * and bitcoin transactions
+   * Standard script verification flags that standard transactions will comply
+   * with. However scripts violating these flags may still be present in valid
+   * blocks and we must accept those blocks.
    */
   def standardScriptVerifyFlags: Seq[ScriptFlag] = mandatoryScriptVerifyFlags ++ Seq(
     ScriptVerifyDerSig,
     ScriptVerifyLowS,
     ScriptVerifyNullDummy,
-    // ScriptVerifySigPushOnly, //TODO: this is causing 2 tests to fail
+    ScriptVerifySigPushOnly,
     ScriptVerifyMinimalData,
     ScriptVerifyDiscourageUpgradableNOPs,
     ScriptVerifyCleanStack,

@@ -260,7 +260,11 @@ sealed abstract class ArithmeticInterpreter {
           -\/(ScriptProgram(program, ScriptErrorUnknownError))
         } else \/-(s)
       case Some(s: ScriptConstant) =>
-        unaryScriptNumber(ScriptProgram(program, ScriptNumber(ScriptNumberUtil.toLong(s.hex)) :: program.stack.tail, ScriptProgram.Stack))
+        if (ScriptFlagUtil.requireMinimalData(program.flags) && !BitcoinScriptUtil.isMinimalEncoding(s)) {
+          logger.error("The number you gave us is not encoded in the shortest way possible")
+          -\/(ScriptProgram(program, ScriptErrorUnknownError))
+        } else
+          unaryScriptNumber(ScriptProgram(program, ScriptNumber(ScriptNumberUtil.toLong(s.hex)) :: program.stack.tail, ScriptProgram.Stack))
       case Some(_: ScriptToken) =>
         logger.error("Stack top must be a script number/script constant to perform an arithmetic operation")
         -\/(ScriptProgram(program, ScriptErrorUnknownError))
