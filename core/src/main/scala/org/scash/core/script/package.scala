@@ -2,6 +2,7 @@ package org.scash.core
 /**
  *   Copyright (c) 2018 Flores Lorca (MIT License)
  */
+
 import org.scash.core.script.constant.ScriptToken
 import org.scash.core.script.result.{ ScriptError, ScriptErrorInvalidStackOperation }
 import org.scash.core.util.BitcoinSLogger
