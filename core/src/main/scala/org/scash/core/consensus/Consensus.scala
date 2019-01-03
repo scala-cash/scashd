@@ -86,6 +86,13 @@ object Consensus {
    * MAX_SCRIPT_SIZE
    */
   val maxScriptSize = 10000
+
+  /**
+   * Max stack size during execution (consensus).
+   * MAX_SCRIPT_STACK
+   */
+  val maxScriptStackSize = 1000
+
   /**
    * Compute the maximum number of sigops operation that can contained in a block
    * given the block size as parameter. It is computed by multiplying

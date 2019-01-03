@@ -189,10 +189,10 @@ sealed abstract class ArithmeticInterpreter {
     require(p.script.headOption.contains(OP_WITHIN), "Script top must be OP_WITHIN")
     val fNum = ScriptNumber(ScriptFlagUtil.requireMinimalData(p.flags)) _
     val exec = for {
-      _ <- script.checkTriary(p)
-      c <- fNum(p.stack.head.bytes)
-      b <- fNum(p.stack.tail.head.bytes)
-      a <- fNum(p.stack.tail.tail.head.bytes)
+      s <- script.getThree(p.stack)
+      c <- fNum(s._1.bytes)
+      b <- fNum(s._2.bytes)
+      a <- fNum(s._3.bytes)
     } yield {
       val newStackTop = if (a >= b && a < c) OP_TRUE else OP_FALSE
       ScriptProgram(p, newStackTop :: p.stack.drop(3), p.script.tail)

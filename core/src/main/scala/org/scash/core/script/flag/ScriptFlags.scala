@@ -1,11 +1,14 @@
 package org.scash.core.script.flag
-
 /**
- * Created by chris on 3/23/16.
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018-2019 The Scash developers (MIT License)
+ *   https://github.com/scala-cash/scash
+ *
  * This represents all of the script flags found inside of
  * https://github.com/Bitcoin-ABC/bitcoin-abc/blob/master/src/script/script_flags.h
  * these flags indicate how to evaluate a certain script
  */
+
 sealed trait ScriptFlag {
   /** The flag's representation represented as an integer. */
   def flag: Int

@@ -38,7 +38,12 @@ sealed abstract class ScriptInterpreter {
   def run(program: PreExecutionScriptProgram): ScriptResult = {
     val scriptSig = program.txSignatureComponent.scriptSignature
     val scriptPubKey = program.txSignatureComponent.scriptPubKey
-    val flags = program.flags
+    val flags =
+      if (ScriptFlagUtil.sighashForkIdEnabled(program.flags))
+        program.flags :+ ScriptVerifyStrictEnc
+      else
+        program.flags
+
     val p2shEnabled = ScriptFlagUtil.p2shEnabled(flags)
     val executedProgram: ExecutedScriptProgram = if (ScriptFlagUtil.requirePushOnly(flags)
       && !BitcoinScriptUtil.isPushOnly(program.script)) {
@@ -166,6 +171,7 @@ sealed abstract class ScriptInterpreter {
   private def loop(program: ScriptProgram, opCount: Int): ExecutedScriptProgram = {
     logger.trace("Stack: " + program.stack)
     logger.trace("Script: " + program.script)
+    println(s" stack ${program.stack} script ${program.script} og: ${program.originalScript} flags: ${program.flags}")
     val scriptByteVector = BitcoinSUtil.toByteVector(program.script)
     if (opCount > Consensus.maxScriptOps && !program.isInstanceOf[ExecutedScriptProgram]) {
       logger.error("We have reached the maximum amount of script operations allowed")
@@ -190,9 +196,11 @@ sealed abstract class ScriptInterpreter {
           } else p
 
         case p: ExecutionInProgressScriptProgram =>
+
           p.script match {
             //if at any time we see that the program is not valid
             //cease script execution
+
             case _ if p.script.intersect(Seq(OP_VERIF, OP_VERNOTIF)).nonEmpty =>
               logger.error("Script is invalid even when a OP_VERIF or OP_VERNOTIF occurs in an unexecuted OP_IF branch")
               loop(ScriptProgram(p, ScriptErrorBadOpCode), opCount)
@@ -206,11 +214,11 @@ sealed abstract class ScriptInterpreter {
               loop(ScriptProgram(p, ScriptErrorDisabledOpCode), opCount)
             //program cannot contain a push operation > 520 bytes
             case _ if (p.script.exists(token => token.bytes.size > Consensus.maxScriptElementSize)) =>
-              logger.error("We have a script constant that is larger than 520 bytes, this is illegal: " + p.script)
+              logger.error(s"We have a script constant that is larger than ${Consensus.maxScriptElementSize} bytes, this is illegal: " + p.script)
               loop(ScriptProgram(p, ScriptErrorPushSize), opCount)
-            //program stack size cannot be greater than 1000 elements
-            case _ if ((p.stack.size + p.altStack.size) > 1000) =>
-              logger.error("We cannot have a stack + alt stack size larger than 1000 elements")
+            //program stack size cannot be greater than maxScriptStackSize elements
+            case _ if ((p.stack.size + p.altStack.size) > Consensus.maxScriptStackSize) =>
+              logger.error(s"We cannot have a stack + alt stack size larger than ${Consensus.maxScriptStackSize} elements")
               loop(ScriptProgram(p, ScriptErrorStackSize), opCount)
 
             //stack operations

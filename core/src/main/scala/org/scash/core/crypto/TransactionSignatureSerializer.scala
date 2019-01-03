@@ -7,7 +7,7 @@ import org.scash.core.util.{ BitcoinSLogger, BitcoinSUtil, BitcoinScriptUtil, Cr
 import org.scash.core.number.{ Int32, UInt32 }
 import org.scash.core.protocol.CompactSizeUInt
 import org.scash.core.protocol.script.{ NonStandardScriptSignature, ScriptSignature }
-import org.scash.core.script.flag.{ ScriptEnableReplayProtection, ScriptEnableSigHashForkId }
+import org.scash.core.script.flag.{ ScriptEnableReplayProtection, ScriptEnableSigHashForkId, ScriptFlagUtil }
 import org.scash.core.serializers.transaction.RawTransactionOutputParser
 import scodec.bits.ByteVector
 
@@ -197,7 +197,7 @@ sealed abstract class TransactionSignatureSerializer {
         }
 
       val ssTxSig = if (HashType.isSigHashForkId(hashType.num) &&
-        txSigComponent.flags.contains(ScriptEnableSigHashForkId))
+        ScriptFlagUtil.sighashForkIdEnabled(txSigComponent.flags))
         serializeReplayProtected(txSigComponent, sigHash)
       else
         serializeLegacy(txSigComponent, sigHash)

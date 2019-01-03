@@ -97,6 +97,12 @@ trait ScriptFlagUtil {
    * See: https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2016-August/013014.html
    */
   def minimalIfEnabled(flags: Seq[ScriptFlag]): Boolean = flags.contains(ScriptVerifyMinimalIf)
+
+  /**
+   * Verifies that ForkId is enabled
+   * https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/replay-protected-sighash.md
+   */
+  def sighashForkIdEnabled(flags: Seq[ScriptFlag]): Boolean = flags.contains(ScriptEnableSigHashForkId)
 }
 
 object ScriptFlagUtil extends ScriptFlagUtil
