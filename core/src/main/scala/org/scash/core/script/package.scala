@@ -3,7 +3,8 @@ package org.scash.core
  *   Copyright (c) 2018 Flores Lorca (MIT License)
  */
 
-import org.scash.core.script.constant.ScriptToken
+import org.scash.core.script.constant.{ ScriptOperation, ScriptToken }
+import org.scash.core.script.flag.ScriptFlag
 import org.scash.core.script.result.{ ScriptError, ScriptErrorInvalidStackOperation }
 import org.scash.core.util.BitcoinSLogger
 import scalaz.{ -\/, \/, \/- }
@@ -29,4 +30,11 @@ package object script {
       -\/(err)
     } else \/-(a)
   }
+
+  def checkFlag(flags: Seq[ScriptFlag])(flag: ScriptFlag, err: ScriptError, f: => Boolean = false): ScriptError \/ Seq[ScriptFlag] =
+    to(flags)(err, flags.contains(flag) && f)
+
+  def checkFlags(flags: Seq[ScriptFlag])(reqs: Seq[ScriptFlag], err: ScriptError, f: => Boolean = false): ScriptError \/ Seq[ScriptFlag] =
+    to(flags)(err, flags.find(reqs.contains).isDefined && f)
+
 }
