@@ -1,5 +1,9 @@
 package org.scash.core.script.control
-
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018-2019 The SCash Developers (MIT License)
+ *   https://github.com/scala-cash/scash
+ */
 import org.scash.core.serializers.script.ScriptParser
 import org.scash.core.script.ScriptProgram
 import org.scash.core.script.arithmetic.OP_ADD
@@ -13,9 +17,6 @@ import org.scash.core.script.stack.OP_DROP
 import org.scash.core.util._
 import org.scalatest.{ FlatSpec, MustMatchers }
 
-/**
- * Created by chris on 1/6/16.
- */
 class ControlOperationsInterpreterTest extends FlatSpec with MustMatchers {
   private def logger = BitcoinSLogger.logger
   val COI = ControlOperationsInterpreter
@@ -385,16 +386,16 @@ class ControlOperationsInterpreterTest extends FlatSpec with MustMatchers {
 
   it must "check that every OP_IF has a matching OP_ENDIF" in {
     val script0 = List()
-    COI.checkMatchingOpIfOpNotIfOpEndIf(script0) must be(true)
+    COI.checkMatchingEnd(script0) must be(true)
 
     val script1 = List(OP_IF, OP_ENDIF)
-    COI.checkMatchingOpIfOpNotIfOpEndIf(script1) must be(true)
+    COI.checkMatchingEnd(script1) must be(true)
 
     val script2 = List(OP_IF)
-    COI.checkMatchingOpIfOpNotIfOpEndIf(script2) must be(false)
+    COI.checkMatchingEnd(script2) must be(false)
 
     val script3 = List(OP_IF, OP_IF, OP_NOTIF, OP_ELSE, OP_ELSE, OP_ELSE, OP_ENDIF, OP_ENDIF, OP_ENDIF)
-    COI.checkMatchingOpIfOpNotIfOpEndIf(script3) must be(true)
+    COI.checkMatchingEnd(script3) must be(true)
   }
 
   it must "evaluate an OP_IF block correctly if the stack top is true" in {

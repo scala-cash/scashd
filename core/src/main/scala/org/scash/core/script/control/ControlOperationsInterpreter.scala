@@ -1,60 +1,86 @@
 package org.scash.core.script.control
+/**
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018-2019 The SCash Developers (MIT License)
+ *   https://github.com/scala-cash/scash
+ */
 
+import org.scash.core.script.ScriptProgram
 import org.scash.core.script.constant._
+import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.script.result._
 import org.scash.core.util._
-import org.scash.core.script
-import org.scash.core.script.ScriptProgram
 
 import scala.annotation.tailrec
 
-/**
- * Created by chris on 1/6/16.
- */
 sealed abstract class ControlOperationsInterpreter {
   private def logger = BitcoinSLogger.logger
+
   /** If the top stack value is not 0, the statements are executed. The top stack value is removed. */
+  // <expression> if [statements] [else [statements]]
+  // endif
   def opIf(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_IF), "Script top was not OP_IF")
+    val flags = program.flags
     val binaryTree = parseBinaryTree(program.script)
+    val stackTop = program.stack.headOption
     logger.debug("Parsed binary tree: " + binaryTree)
-    if (!checkMatchingOpIfOpNotIfOpEndIf(program.originalScript)) {
+    if (!checkMatchingEnd(program.originalScript)) {
       logger.error("We do not have a matching OP_ENDIF for every OP_IF we have")
       ScriptProgram(program, ScriptErrorUnbalancedConditional)
     } else if (program.stack.isEmpty) {
       logger.error("We do not have any stack elements for our OP_IF")
       ScriptProgram(program, ScriptErrorUnbalancedConditional)
+    } else if (isNotMinimalIf(stackTop, ScriptFlagUtil.minimalIfEnabled(flags))) {
+      logger.error("OP_IF argument was not minimally encoded, got: " + stackTop)
+      ScriptProgram(program, ScriptErrorMinimalIf)
     } else if (program.stackTopIsTrue) {
-      logger.debug("OP_IF stack top was true")
-      logger.debug("Stack top: " + program.stack)
       //if the left branch contains and OP_IF & OP_ENDIF there must be a nested OP_IF
       //remove OP_ELSE from binary tree
       val newTreeWithoutOpElse = removeFirstOpElse(binaryTree)
       val newScript = newTreeWithoutOpElse.toList
-      logger.debug("New script after removing OP_ELSE branch " + newScript.tail)
-      logger.debug("New stack after removing OP_ELSE branch: " + program.stack.tail)
-      script.ScriptProgram(program, program.stack.tail, newScript.tail)
+      ScriptProgram(program, program.stack.tail, newScript.tail)
     } else {
-      logger.debug("OP_IF stack top was false")
       //remove the OP_IF
-      val scriptWithoutOpIf: BinaryTree[ScriptToken] = removeFirstOpIf(binaryTree)
-      script.ScriptProgram(program, program.stack.tail, scriptWithoutOpIf.toList)
+      val scriptWithoutOpIf = removeFirstOpIf(binaryTree)
+      ScriptProgram(program, program.stack.tail, scriptWithoutOpIf.toList)
     }
   }
+
+  /**
+   * Checks if the stack top is NOT minimally encoded
+   * https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2016-August/013014.html
+   */
+  private def isNotMinimalIf(
+    stackTopOpt: Option[ScriptToken],
+    minimalIfEnabled: Boolean): Boolean = stackTopOpt.fold(false)(stackTop =>
+    minimalIfEnabled &&
+      (stackTop.bytes.size > 1 || (stackTop.size == 1 && stackTop.bytes.head != 1)))
 
   /** If the top stack value is 0, the statements are executed. The top stack value is removed. */
   def opNotIf(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_NOTIF), "Script top was not OP_NOTIF")
-    val script = OP_IF :: program.script.tail
-    val stackTop = if (program.stackTopIsTrue) ScriptNumber.zero else ScriptNumber.one
-    val stack = if (program.stack.nonEmpty) stackTop :: program.stack.tail else Nil
-    val newProgram = ScriptProgram(program, stack, script)
-    opIf(newProgram)
+    val oldStackTop = program.stack.headOption
+    if (isNotMinimalIf(oldStackTop, ScriptFlagUtil.minimalIfEnabled(program.flags))) {
+      //need to duplicate minimal check, we cannot accurately invert the stack
+      //top for OP_IF otherwise
+      ScriptProgram(program, ScriptErrorMinimalIf)
+    } else {
+      val script = OP_IF :: program.script.tail
+      val stackTop =
+        if (program.stackTopIsTrue) ScriptNumber.zero else ScriptNumber.one
+      val stack =
+        if (program.stack.nonEmpty) stackTop :: program.stack.tail else Nil
+      val newProgram = ScriptProgram(program, stack, script)
+      opIf(newProgram)
+    }
   }
 
   /** Evaluates the [[OP_ELSE]] operator. */
   def opElse(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_ELSE), "First script opt must be OP_ELSE")
+    require(
+      program.script.headOption.contains(OP_ELSE),
+      "First script opt must be OP_ELSE")
     if (!program.script.tail.contains(OP_ENDIF)) {
       logger.error("OP_ELSE does not have a OP_ENDIF")
       ScriptProgram(program, ScriptErrorUnbalancedConditional)
@@ -66,16 +92,22 @@ sealed abstract class ControlOperationsInterpreter {
         case node: Node[ScriptToken] =>
           removeFirstOpElse(node)
       }
-      script.ScriptProgram(program, program.stack, treeWithNextOpElseRemoved.toList.tail)
+      ScriptProgram(
+        program,
+        program.stack,
+        treeWithNextOpElseRemoved.toList.tail)
     }
   }
 
   /** Evaluates an [[OP_ENDIF]] operator. */
   def opEndIf(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_ENDIF), "Script top must be OP_ENDIF")
-    if (!checkMatchingOpIfOpNotIfOpEndIf(program.originalScript)) {
+    require(
+      program.script.headOption.contains(OP_ENDIF),
+      "Script top must be OP_ENDIF")
+    if (!checkMatchingEnd(program.originalScript)) {
       //means we do not have a matching OP_IF for our OP_ENDIF
-      logger.error("We do not have a matching OP_IF/OP_NOTIF for every OP_ENDIF we have")
+      logger.error(
+        "We do not have a matching OP_IF/OP_NOTIF for every OP_ENDIF we have")
       ScriptProgram(program, ScriptErrorUnbalancedConditional)
     } else ScriptProgram(program, program.stack, program.script.tail)
   }
@@ -111,10 +143,17 @@ sealed abstract class ControlOperationsInterpreter {
     def loop(remaining: List[ScriptToken], parentTree: BinaryTree[ScriptToken]): (BinaryTree[ScriptToken], List[ScriptToken]) = {
       if (remaining.isEmpty) (parentTree, Nil)
       else {
-        if (parentTree.right.isDefined && parentTree.right.get.value == Some(OP_ELSE)) {
+        if (parentTree.right.isDefined && parentTree.right.get.value == Some(
+          OP_ELSE)) {
           //for the case of OP_IF OP_1 OP_ELSE OP_2 OP_ELSE OP_3 ... OP_ELSE OP_N OP_ENDIF
-          val (elseTree, newRemaining) = loop(remaining, parentTree.right.getOrElse(Empty))
-          (Node(parentTree.value.get, parentTree.left.getOrElse(Empty), elseTree), newRemaining)
+          val (elseTree, newRemaining) =
+            loop(remaining, parentTree.right.getOrElse(Empty))
+          (
+            Node(
+              parentTree.value.get,
+              parentTree.left.getOrElse(Empty),
+              elseTree),
+              newRemaining)
         } else {
           val (tree, newRemaining) = parse(remaining, parentTree)
           loop(newRemaining, tree)
@@ -122,14 +161,14 @@ sealed abstract class ControlOperationsInterpreter {
       }
     }
     val (t, remaining) = loop(script, Empty)
-    require(remaining.isEmpty, "Should not have any script tokens after parsing a binary tree, got: " + remaining)
+    require(
+      remaining.isEmpty,
+      "Should not have any script tokens after parsing a binary tree, got: " + remaining)
     t
   }
 
   /** The loop that parses a list of [[ScriptToken]]s into a [[BinaryTree]]. */
-  private def parse(
-    script: List[ScriptToken],
-    tree: BinaryTree[ScriptToken]): (BinaryTree[ScriptToken], List[ScriptToken]) = script match {
+  private def parse(script: List[ScriptToken], tree: BinaryTree[ScriptToken]): (BinaryTree[ScriptToken], List[ScriptToken]) = script match {
     case OP_ENDIF :: t =>
       val ifTree = insertSubTree(tree, Leaf(OP_ENDIF))
       (ifTree, t)
@@ -167,9 +206,11 @@ sealed abstract class ControlOperationsInterpreter {
       else if (subTree == Leaf(OP_ENDIF)) Node(leaf.v, Empty, subTree)
       else Node(leaf.v, subTree, Empty)
     case node: Node[ScriptToken] if (node.v == OP_IF || node.v == OP_NOTIF || node.v == OP_ELSE || node.v == OP_ENDIF) =>
-      if (subTree.value.isDefined && Seq(OP_ELSE, OP_ENDIF).contains(subTree.value.get)) {
+      if (subTree.value.isDefined && Seq(OP_ELSE, OP_ENDIF).contains(
+        subTree.value.get)) {
         Node(node.v, node.l, insertSubTree(node.r, subTree))
-      } else if (node.r != Empty && Seq(OP_ELSE, OP_ENDIF).contains(node.r.value.get)) {
+      } else if (node.r != Empty && Seq(OP_ELSE, OP_ENDIF).contains(
+        node.r.value.get)) {
         Node(node.v, node.l, insertSubTree(node.r, subTree))
       } else {
         Node(node.v, insertSubTree(node.l, subTree), node.r)
@@ -179,7 +220,7 @@ sealed abstract class ControlOperationsInterpreter {
   }
 
   /** Checks if an [[OP_IF]]/[[OP_NOTIF]] [[ScriptToken]] has a matching [[OP_ENDIF]] */
-  def checkMatchingOpIfOpNotIfOpEndIf(script: List[ScriptToken]): Boolean = {
+  def checkMatchingEnd(script: List[ScriptToken]): Boolean = {
     @tailrec
     def loop(script: List[ScriptToken], counter: Int): Boolean = script match {
       case _ if (counter < 0) => false
@@ -211,40 +252,38 @@ sealed abstract class ControlOperationsInterpreter {
   /** Returns the first index of an [[OP_ENDIF]]. */
   def findFirstOpElse(script: List[ScriptToken]): Option[Int] = {
     val index = script.indexOf(OP_ELSE)
-    index match {
+    script.indexOf(OP_ELSE) match {
       case -1 => None
       case _ => Some(index)
     }
   }
 
   /** Removes the first [[OP_ELSE]] expression encountered in the script. */
-  def removeFirstOpElse(script: List[ScriptToken]): List[ScriptToken] = {
+  def removeFirstOpElse(script: List[ScriptToken]): List[ScriptToken] =
     removeFirstOpElse(parseBinaryTree(script)).toList
-  }
 
   /** Removes the first [[OP_ELSE]] in a [[BinaryTree]]. */
-  def removeFirstOpElse(tree: BinaryTree[ScriptToken]): BinaryTree[ScriptToken] = {
+  def removeFirstOpElse(tree: BinaryTree[ScriptToken]) = {
     //@tailrec
-    def loop(child: BinaryTree[ScriptToken], parent: Node[ScriptToken]): BinaryTree[ScriptToken] = child match {
-      case Empty => Empty
-      case l: Leaf[ScriptToken] => l
-      case Node(OP_ELSE, _, r) => r
-      case n: Node[ScriptToken] =>
-        Node(n.v, n.l, loop(n.r, n))
-    }
+    def loop(child: BinaryTree[ScriptToken]): BinaryTree[ScriptToken] =
+      child match {
+        case Empty => Empty
+        case l: Leaf[ScriptToken] => l
+        case Node(OP_ELSE, _, r) => r
+        case n: Node[ScriptToken] =>
+          Node(n.v, n.l, loop(n.r))
+      }
+
     tree match {
       case Empty => Empty
       case l: Leaf[ScriptToken] => l
-      case n: Node[ScriptToken] =>
-        val result = Node(n.v, n.l, loop(n.r, n))
-        result
+      case n: Node[ScriptToken] => Node(n.v, n.l, loop(n.r))
     }
   }
 
   /** Removes the first [[OP_IF]] encountered in the script. */
-  def removeFirstOpIf(script: List[ScriptToken]): List[ScriptToken] = {
+  def removeFirstOpIf(script: List[ScriptToken]): List[ScriptToken] =
     removeFirstOpIf(parseBinaryTree(script)).toList
-  }
 
   /** Removes the first occurrence of [[OP_IF]] or [[OP_NOTIF]] in the [[BinaryTree]]. */
   def removeFirstOpIf(tree: BinaryTree[ScriptToken]): BinaryTree[ScriptToken] = {

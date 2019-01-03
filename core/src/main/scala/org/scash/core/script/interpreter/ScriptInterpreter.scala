@@ -171,7 +171,6 @@ sealed abstract class ScriptInterpreter {
   private def loop(program: ScriptProgram, opCount: Int): ExecutedScriptProgram = {
     logger.trace("Stack: " + program.stack)
     logger.trace("Script: " + program.script)
-    println(s" stack ${program.stack} script ${program.script} og: ${program.originalScript} flags: ${program.flags}")
     val scriptByteVector = BitcoinSUtil.toByteVector(program.script)
     if (opCount > Consensus.maxScriptOps && !program.isInstanceOf[ExecutedScriptProgram]) {
       logger.error("We have reached the maximum amount of script operations allowed")
