@@ -220,7 +220,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedP2PKScriptSignature: Gen[(P2PKScriptSignature, P2PKScriptPubKey, ECPrivateKey)] = for {
     privateKey <- CryptoGenerators.privateKey
-    hashType <- CryptoGenerators.hashType
+    hashType <- CryptoGenerators.forkIdHashType
     publicKey = privateKey.publicKey
     scriptPubKey = P2PKScriptPubKey(publicKey)
     (creditingTx, outputIndex) = TransactionGenerators.buildCreditingTransaction(scriptPubKey)
@@ -240,7 +240,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedP2PKHScriptSignature: Gen[(P2PKHScriptSignature, P2PKHScriptPubKey, ECPrivateKey)] = for {
     privateKey <- CryptoGenerators.privateKey
-    hashType <- CryptoGenerators.hashType
+    hashType <- CryptoGenerators.forkIdHashType
     publicKey = privateKey.publicKey
     scriptPubKey = P2PKHScriptPubKey(publicKey)
     (creditingTx, outputIndex) = TransactionGenerators.buildCreditingTransaction(scriptPubKey)
@@ -258,7 +258,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedMultiSignatureScriptSignature: Gen[(MultiSignatureScriptSignature, MultiSignatureScriptPubKey, Seq[ECPrivateKey])] = for {
     (privateKeys, requiredSigs) <- CryptoGenerators.privateKeySeqWithRequiredSigs
-    hashType <- CryptoGenerators.hashType
+    hashType <- CryptoGenerators.forkIdHashType
     publicKeys = privateKeys.map(_.publicKey)
     multiSigScriptPubKey = MultiSignatureScriptPubKey(requiredSigs, publicKeys)
     emptyDigitalSignatures = privateKeys.map(_ => EmptyDigitalSignature)
@@ -290,7 +290,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedCLTVScriptSignature(cltvLockTime: ScriptNumber, lockTime: UInt32, sequence: UInt32): Gen[(CLTVScriptSignature, CLTVScriptPubKey, Seq[ECPrivateKey])] = for {
     (scriptPubKey, privKeys) <- randomNonLockTimeNonP2SHScriptPubKey
-    hashType <- CryptoGenerators.hashType
+    hashType <- CryptoGenerators.forkIdHashType
     cltv = CLTVScriptPubKey(cltvLockTime, scriptPubKey)
   } yield scriptPubKey match {
     case m: MultiSignatureScriptPubKey =>
@@ -313,7 +313,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedCSVScriptSignature(csvScriptNum: ScriptNumber, sequence: UInt32): Gen[(CSVScriptSignature, CSVScriptPubKey, Seq[ECPrivateKey])] = for {
     (scriptPubKey, privKeys) <- randomNonLockTimeNonP2SHScriptPubKey
-    hashType <- CryptoGenerators.hashType
+    hashType <- CryptoGenerators.forkIdHashType
     csv = CSVScriptPubKey(csvScriptNum, scriptPubKey)
   } yield scriptPubKey match {
     case m: MultiSignatureScriptPubKey =>
@@ -356,7 +356,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
 
   def signedMultiSigEscrowTimeoutScriptSig(escrowTimeout: EscrowTimeoutScriptPubKey, privKeys: Seq[ECPrivateKey],
     sequence: UInt32, outputs: Seq[TransactionOutput], amount: CurrencyUnit): Gen[(EscrowTimeoutScriptSignature, EscrowTimeoutScriptPubKey, Seq[ECPrivateKey])] = for {
-    hashType <- CryptoGenerators.hashType
+    hashType <- CryptoGenerators.forkIdHashType
     scriptSig = csvEscrowTimeoutHelper(sequence, escrowTimeout, privKeys, Some(escrowTimeout.escrow.requiredSigs),
       hashType, true, outputs, amount)
   } yield (scriptSig, escrowTimeout, privKeys)
@@ -365,7 +365,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
   def timeoutEscrowTimeoutScriptSig(scriptNum: ScriptNumber, sequence: UInt32, outputs: Seq[TransactionOutput]): Gen[(EscrowTimeoutScriptSignature, EscrowTimeoutScriptPubKey, Seq[ECPrivateKey])] = for {
     (_, csv, csvPrivKeys) <- signedCSVScriptSignature(scriptNum, sequence)
     (multiSigScriptPubKey, _) <- multiSigScriptPubKey
-    hashType <- CryptoGenerators.hashType
+    hashType <- CryptoGenerators.forkIdHashType
     csvEscrowTimeout = EscrowTimeoutScriptPubKey(multiSigScriptPubKey, csv)
     requireSigs = if (csv.nestedScriptPubKey.isInstanceOf[MultiSignatureScriptPubKey]) {
       val m = csv.nestedScriptPubKey.asInstanceOf[MultiSignatureScriptPubKey]

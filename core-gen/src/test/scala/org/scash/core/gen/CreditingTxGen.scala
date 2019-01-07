@@ -72,7 +72,7 @@ sealed abstract class CreditingTxGen {
   }
 
   def p2shOutput: Gen[BitcoinUTXOSpendingInfo] = rawOutput.flatMap { o =>
-    CryptoGenerators.hashType.map { hashType =>
+    CryptoGenerators.forkIdHashType.map { hashType =>
       val oldOutput = o.output
       val redeemScript = o.output.scriptPubKey
       val p2sh = P2SHScriptPubKey(redeemScript)
@@ -88,7 +88,7 @@ sealed abstract class CreditingTxGen {
   def cltvOutput: Gen[BitcoinUTXOSpendingInfo] = TransactionGenerators.spendableCLTVValues.flatMap {
     case (scriptNum, _) =>
       basicOutput.flatMap { o =>
-        CryptoGenerators.hashType.map { hashType =>
+        CryptoGenerators.forkIdHashType.map { hashType =>
           val oldOutput = o.output
           val csvSPK = CLTVScriptPubKey(scriptNum, oldOutput.scriptPubKey)
           val updatedOutput = TransactionOutput(oldOutput.value, csvSPK)
@@ -102,7 +102,7 @@ sealed abstract class CreditingTxGen {
   def csvOutput: Gen[BitcoinUTXOSpendingInfo] = TransactionGenerators.spendableCSVValues.flatMap {
     case (scriptNum, _) =>
       basicOutput.flatMap { o =>
-        CryptoGenerators.hashType.map { hashType =>
+        CryptoGenerators.forkIdHashType.map { hashType =>
           val oldOutput = o.output
           val csvSPK = CSVScriptPubKey(scriptNum, oldOutput.scriptPubKey)
           val updatedOutput = TransactionOutput(oldOutput.value, csvSPK)
@@ -122,7 +122,7 @@ sealed abstract class CreditingTxGen {
     Gen.choose(0, outputs.size - 1).flatMap { outputIndex: Int =>
       ScriptGenerators.scriptPubKey.flatMap {
         case (spk, keys) =>
-          CryptoGenerators.hashType.map { hashType: HashType =>
+          CryptoGenerators.forkIdHashType.map { hashType: HashType =>
             val tc = TransactionConstants
             val signers: Seq[Sign] = keys
             val creditingTx = BaseTransaction(tc.validLockVersion, Nil, outputs, tc.lockTime)
@@ -144,7 +144,7 @@ sealed abstract class CreditingTxGen {
   private def build(
     spk: ScriptPubKey,
     signers: Seq[Sign]): Gen[BitcoinUTXOSpendingInfo] = nonEmptyOutputs.flatMap { outputs =>
-    CryptoGenerators.hashType.flatMap { hashType =>
+    CryptoGenerators.forkIdHashType.flatMap { hashType =>
       Gen.choose(0, outputs.size - 1).map { idx =>
         val old = outputs(idx)
         val updated = outputs.updated(idx, TransactionOutput(old.value, spk))

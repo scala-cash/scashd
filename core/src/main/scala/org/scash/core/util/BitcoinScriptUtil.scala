@@ -347,10 +347,13 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
    * Removes the [[org.scash.core.script.crypto.OP_CODESEPARATOR]] in the original script according to
    * the last code separator index in the script.
    */
-  def removeOpCodeSeparator(program: ExecutionInProgressScriptProgram): Seq[ScriptToken] = {
-    if (program.lastCodeSeparator.isDefined) {
-      program.originalScript.slice(program.lastCodeSeparator.get + 1, program.originalScript.size)
-    } else program.originalScript
+  def removeOpCodeSeparator(p: ExecutionInProgressScriptProgram): Seq[ScriptToken] = {
+    logger.debug("Program before removing OP_CODESEPARATOR: " + p.originalScript)
+    val r = p.lastCodeSeparator
+      .map(last => p.originalScript.slice(last + 1, p.originalScript.size))
+      .getOrElse(p.originalScript)
+    logger.debug("Program after removing OP_CODESEPARATOR: " + r)
+    r
   }
 
   private def parseScriptEither(scriptEither: Either[(Seq[ScriptToken], ScriptPubKey), ScriptError]): Seq[ScriptToken] = scriptEither match {

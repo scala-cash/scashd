@@ -87,6 +87,9 @@ sealed abstract class CryptoGenerators {
     HashType.sigHashAnyoneCanPay, HashType.sigHashSingleAnyoneCanPay, HashType.sigHashNoneAnyoneCanPay,
     HashType.sigHashAllAnyoneCanPay)
 
+  /** Generates a random [[HashType]] with forkid */
+  def forkIdHashType: Gen[HashType] = Gen.oneOf(HashType.hashTypeForkIds)
+
   def extVersion: Gen[ExtKeyVersion] = Gen.oneOf(MainNetPriv, MainNetPub, TestNet3Priv, TestNet3Pub)
 
   /** Generates an [[ExtPrivateKey]] */

@@ -125,25 +125,42 @@ object SigEncoding {
     true
   }
 
+  /**
+   * Test whether the tx element is a valid signature based
+   * on the encoding, S value, and sighash type. Requires
+   * [[ScriptVerifyDerSig]] | [[ScriptVerifyLowS]] | [[ScriptVerifyStrictEnc]],
+   * [[ScriptVerifyLowS]] &&  [[ScriptVerifyStrictEnc]]
+   * to be enabled respectively. Note that this will allow zero-length signatures.
+   */
   def checkRawSigEncoding(
     sig: => ByteVector,
     flags: Seq[ScriptFlag]): ScriptError \/ ECDigitalSignature =
     for {
       _ <- script.checkFlags(flags)(
-        List(ScriptVerifyStrictEnc, ScriptVerifyStrictEnc),
+        List(ScriptVerifyDerSig, ScriptVerifyLowS, ScriptVerifyStrictEnc),
         ScriptErrorSigDer,
-        isValidSignatureEncoding(sig))
-      _ <- script.checkFlag(flags)(ScriptVerifyLowS, ScriptErrorSigHighS, DERSignatureUtil.isLowS(sig))
+        !isValidSignatureEncoding(sig))
+      _ <- script.checkFlag(flags)(ScriptVerifyLowS, ScriptErrorSigHighS, !DERSignatureUtil.isLowS(sig))
     } yield ECDigitalSignature(sig)
 
   def checkTxSigEncoding(
     sig: => ECDigitalSignature,
     flags: Seq[ScriptFlag]): ScriptError \/ ECDigitalSignature =
+    //allow empty sigs
     if (sig.isEmpty)
       \/-(sig)
     else for {
       _ <- checkRawSigEncoding(sig.bytes.init, flags)
-      ec <- txSigCheck(sig, flags)
+      ec <- if (ScriptFlagUtil.requireStrictEncoding(flags)) {
+        val f = script.to(sig) _
+        for {
+          _ <- f(ScriptErrorSigHashType, !HashType.isDefinedHashtypeSignature(sig))
+          useForkId = HashType.hasForkId(sig)
+          forkIdEnabled = ScriptFlagUtil.sighashForkIdEnabled(flags)
+          _ <- f(ScriptErrorIllegalForkId, !forkIdEnabled && useForkId)
+          _ <- f(ScriptErrorMustUseForkId, forkIdEnabled && !useForkId)
+        } yield sig
+      } else \/-(sig)
     } yield ec
 
   def checkDataSigEncoding(
@@ -164,24 +181,22 @@ object SigEncoding {
     flags: Seq[ScriptFlag]): ScriptError \/ ECPublicKey = {
     val f = script.checkFlag(flags) _
     for {
-      _ <- f(ScriptVerifyStrictEnc, ScriptErrorPubKeyType, isCompressedOrUncompressedPubKey(pubKey))
-      _ <- f(ScriptVerifyCompressedPubkeytype, ScriptErrorNonCompressedPubkey, isCompressedPubKey(pubKey))
+      _ <- f(ScriptVerifyStrictEnc, ScriptErrorPubKeyType, !isKeyEncoding(pubKey))
+      _ <- f(ScriptVerifyCompressedPubkeytype, ScriptErrorNonCompressedPubkey, !isCompressedPubKey(pubKey))
     } yield pubKey
   }
 
   /**
    * Returns true if the key is compressed or uncompressed, false otherwise
    * [[https://github.com/Bitcoin-ABC/bitcoin-abc/blob/058a6c027b5d4749b4fa23a0ac918e5fc04320e8/src/script/sigencoding.cpp#L217]]
-   * @param key the public key that is being checked
-   * @return true if the key is compressed/uncompressed otherwise false
    */
-  def isCompressedOrUncompressedPubKey(key: => ECPublicKey): Boolean = key.bytes.size match {
+  def isKeyEncoding(key: => ECPublicKey): Boolean = key.bytes.size match {
     case 33 =>
       // Compressed public key: must start with 0x02 or 0x03.
-      key.bytes.get(0) == 0x02 || key.bytes.get(0) == 0x03
+      key.bytes.head == 0x02 || key.bytes.head == 0x03
     case 65 =>
       //Non-compressed public key must start with 0x04
-      key.bytes.get(0) == 0x04
+      key.bytes.head == 0x04
     case _ =>
       // Non canonical public keys are invalid
       false
@@ -191,16 +206,4 @@ object SigEncoding {
   def isCompressedPubKey(key: => ECPublicKey): Boolean =
     (key.bytes.size == 33) && (key.bytes.head == 0x02 || key.bytes.head == 0x03)
 
-  def txSigCheck(sig: => ECDigitalSignature, flags: Seq[ScriptFlag]): ScriptError \/ ECDigitalSignature = {
-    val f = script.to(sig) _
-    if (ScriptFlagUtil.requireStrictEncoding(flags))
-      for {
-        _ <- f(ScriptErrorSigHashType, HashType.isDefinedHashtypeSignature(sig))
-        useForkId = HashType.isSigHashForkId(Int32(sig.bytes))
-        forkIdEnabled = ScriptFlagUtil.sighashForkIdEnabled(flags)
-        _ <- f(ScriptErrorIllegalForkId, forkIdEnabled && !useForkId)
-        ec <- f(ScriptErrorMustUseForkId, !forkIdEnabled && useForkId)
-      } yield ec
-    else \/-(sig)
-  }
 }

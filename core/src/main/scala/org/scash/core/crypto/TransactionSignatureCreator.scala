@@ -1,6 +1,7 @@
 package org.scash.core.crypto
 
 import org.scash.core.script.crypto.HashType
+import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.util.BitcoinSLogger
 import scodec.bits.ByteVector
 
@@ -38,6 +39,7 @@ sealed abstract class TransactionSignatureCreator {
     val signature = sign(hash.bytes)
     //append 1 byte hash type onto the end
     val sig = ECDigitalSignature(signature.bytes ++ ByteVector.fromByte(hashType.byte))
+    //require(HashType.hasForkId(sig), "The Signature doesnt have fork id")
     require(sig.isStrictEncoded, "We did not create a signature that is strictly encoded, got: " + sig)
     require(DERSignatureUtil.isLowS(sig), "Sig does not have a low s value")
     sig

@@ -57,7 +57,13 @@ object HashType extends Factory[HashType] {
 
   def isSigHashSingle(num: Int32): Boolean = (num & Int32(0x1f)) == Int32(3)
 
-  def isSigHashForkId(num: Int32): Boolean = (num & Int32(0x40)) == Int32(0x40)
+  def isSigHashForkId(num: Int32): Boolean = (num & Int32(sigHashForkIdByte)) == Int32(sigHashForkIdByte)
+
+  def isSighashAllForkid(num: Int32): Boolean = isSigHashAllOne(num) && isSigHashForkId(num)
+
+  def isSighashNoneForkid(num: Int32): Boolean = isSigHashNone(num) && isSigHashForkId(num)
+
+  def isSighashSingleForkid(num: Int32): Boolean = isSigHashSingle(num) && isSigHashForkId(num)
 
   def isSigHashAnyoneCanPay(num: Int32): Boolean = (num & Int32(0x80)) == Int32(0x80)
 
@@ -93,14 +99,25 @@ object HashType extends Factory[HashType] {
   def isAnyoneCanPay(hashType: HashType): Boolean = hashType match {
     case _: SIGHASH_ANYONECANPAY | _: SIGHASH_ALL_ANYONECANPAY | _: SIGHASH_SINGLE_ANYONECANPAY |
       _: SIGHASH_NONE_ANYONECANPAY => true
-    case _: SIGHASH_ALL | _: SIGHASH_SINGLE | _: SIGHASH_NONE => false
+    case _ => false
   }
 
-  lazy val hashTypes = Seq(sigHashAll, sigHashNone, sigHashSingle, sigHashAnyoneCanPay,
-    sigHashNoneAnyoneCanPay, sigHashAllAnyoneCanPay, sigHashSingleAnyoneCanPay)
+  lazy val hashTypeBytes: Vector[Byte] = Vector(
+    sigHashAllByte,
+    sigHashSingleByte,
+    sigHashNoneByte,
+    sigHashAllForkIdByte,
+    sigHashSingleForkIdByte,
+    sigHashNoneForkIdByte,
+    sigHashAnyoneCanPayByte,
+    sigHashNoneAnyoneCanPayByte,
+    sigHashSingleAnyoneCanPayByte,
+    sigHashAllAnyoneCanPayByte)
 
-  lazy val hashTypeBytes: Vector[Byte] = Vector(sigHashAllByte, sigHashSingleByte, sigHashNoneByte, sigHashAnyoneCanPayByte,
-    sigHashNoneAnyoneCanPayByte, sigHashSingleAnyoneCanPayByte, sigHashAllAnyoneCanPayByte)
+  lazy val hashTypeForkIds: List[HashType] = List(
+    sigHashAllForkId,
+    sigHashNoneForkId,
+    sigHashSingleForkId)
 
   def apply(num: Int32): HashType = fromNumber(num)
 
@@ -126,8 +143,6 @@ object HashType extends Factory[HashType] {
    */
   val sigHashAnyoneCanPayNum = Int32(0x80)
 
-  val sigHashForkid = 0x40.toByte
-
   val sigHashAnyoneCanPayByte = 0x80.toByte
 
   val sigHashAnyoneCanPay: SIGHASH_ANYONECANPAY = SIGHASH_ANYONECANPAY(sigHashAnyoneCanPayNum)
@@ -141,6 +156,23 @@ object HashType extends Factory[HashType] {
   val sigHashSingleByte: Byte = 3.toByte
 
   val sigHashSingle: SIGHASH_SINGLE = SIGHASH_SINGLE(Int32(sigHashSingleByte))
+
+  /** The default byte for [[SIGHASH_FORKID]] */
+  val sigHashForkIdByte = 0x40.toByte
+
+  val sigHashForkId = SIGHASH_FORKID(Int32(sigHashForkIdByte))
+
+  val sigHashAllForkIdByte = (sigHashAllByte | sigHashForkIdByte).toByte
+
+  val sigHashSingleForkIdByte = (sigHashSingleByte | sigHashForkIdByte).toByte
+
+  val sigHashNoneForkIdByte = (sigHashNoneByte | sigHashForkIdByte).toByte
+
+  val sigHashAllForkId = SIGHASH_ALL_FORKID(Int32(sigHashAllForkIdByte))
+
+  val sigHashSingleForkId = SIGHASH_SINGLE_FORKID(Int32(sigHashSingleForkIdByte))
+
+  val sigHashNoneForkId = SIGHASH_NONE_FORKID(Int32(sigHashNoneForkIdByte))
 
   val sigHashAllAnyoneCanPayByte = (HashType.sigHashAllByte | HashType.sigHashAnyoneCanPayByte).toByte
 
@@ -166,6 +198,8 @@ object HashType extends Factory[HashType] {
   def isDefinedHashtypeSignature(sig: ECDigitalSignature): Boolean = {
     sig.bytes.nonEmpty && hashTypeBytes.contains(sig.bytes.last)
   }
+
+  def hasForkId(sig: ECDigitalSignature): Boolean = sig.bytes.nonEmpty && isSigHashForkId(Int32(sig.bytes.last))
 }
 
 /**
@@ -190,6 +224,22 @@ case class SIGHASH_SINGLE(override val num: Int32) extends HashType {
 
 case class SIGHASH_ANYONECANPAY(override val num: Int32) extends HashType {
   require(HashType.isSigHashAnyoneCanPay(num), "The given number was not a SIGHASH_ANYONECANPAY number: " + num)
+}
+
+case class SIGHASH_FORKID(override val num: Int32) extends HashType {
+  require(HashType.isSigHashForkId(num), "The given number was not a SIGHASH_FORKID number: " + num)
+}
+
+case class SIGHASH_ALL_FORKID(override val num: Int32) extends HashType {
+  require(HashType.isSighashAllForkid(num), "The given number was not a SIGHASH_ALL_FORKID number: " + num)
+}
+
+case class SIGHASH_NONE_FORKID(override val num: Int32) extends HashType {
+  require(HashType.isSighashNoneForkid(num), "The given number was not a SIGHASH_NONE_FORKID number: " + num)
+}
+
+case class SIGHASH_SINGLE_FORKID(override val num: Int32) extends HashType {
+  require(HashType.isSighashSingleForkid(num), "The given number was not a SIGHASH_SINGLE_FORKID number: " + num)
 }
 
 case class SIGHASH_ALL_ANYONECANPAY(override val num: Int32) extends HashType {

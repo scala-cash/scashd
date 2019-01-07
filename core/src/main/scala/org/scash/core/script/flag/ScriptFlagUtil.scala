@@ -103,6 +103,7 @@ trait ScriptFlagUtil {
    * https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/replay-protected-sighash.md
    */
   def sighashForkIdEnabled(flags: Seq[ScriptFlag]): Boolean = flags.contains(ScriptEnableSigHashForkId)
+
 }
 
 object ScriptFlagUtil extends ScriptFlagUtil

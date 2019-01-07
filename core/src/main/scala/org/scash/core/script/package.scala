@@ -3,7 +3,7 @@ package org.scash.core
  *   Copyright (c) 2018 Flores Lorca (MIT License)
  */
 
-import org.scash.core.script.constant.{ ScriptOperation, ScriptToken }
+import org.scash.core.script.constant.ScriptToken
 import org.scash.core.script.flag.ScriptFlag
 import org.scash.core.script.result.{ ScriptError, ScriptErrorInvalidStackOperation }
 import org.scash.core.util.BitcoinSLogger
@@ -14,6 +14,12 @@ package object script {
 
   def checkBinary(p: => ScriptProgram): ScriptProgram \/ ScriptProgram =
     checkNum(p, 2).leftMap(ScriptProgram(p, _))
+
+  def getTwo(p: => List[ScriptToken]): ScriptError \/ (ScriptToken, ScriptToken) =
+    p match {
+      case a :: b :: _ => \/-(a, b)
+      case _ => -\/(ScriptErrorInvalidStackOperation)
+    }
 
   def getThree(p: => List[ScriptToken]): ScriptError \/ (ScriptToken, ScriptToken, ScriptToken) =
     p match {

@@ -2,11 +2,13 @@ package org.scash.core.crypto
 
 import org.scash.core.script.constant.ScriptToken
 import org.scash.core.script.crypto._
-import org.scash.core.script.flag.{ ScriptFlag, ScriptFlagUtil }
+import org.scash.core.script.flag.{ ScriptFlag, ScriptFlagUtil, ScriptVerifyNullFail }
 import org.scash.core.util.{ BitcoinSLogger, BitcoinSUtil, BitcoinScriptUtil }
-import org.scash.core.crypto
+import org.scash.core.{ crypto, script }
 import org.scash.core.protocol.script.ScriptPubKey
 import org.scash.core.protocol.transaction.TransactionOutput
+import org.scash.core.script.result.{ ScriptError, ScriptErrorInvalidStackOperation, ScriptErrorSigHashType, ScriptErrorSigNullFail }
+import scalaz.{ -\/, \/, \/- }
 import scodec.bits.ByteVector
 
 import scala.annotation.tailrec
@@ -32,10 +34,9 @@ trait TransactionSignatureChecker extends BitcoinSLogger {
    */
   def checkSignature(txSignatureComponent: TxSigComponent, script: Seq[ScriptToken],
     pubKey: ECPublicKey, signature: ECDigitalSignature, flags: Seq[ScriptFlag]): TransactionSignatureCheckerResult = {
-    logger.debug("Signature: " + signature)
     val pubKeyEncodedCorrectly = BitcoinScriptUtil.isValidPubKeyEncoding(pubKey, flags)
     if (ScriptFlagUtil.requiresStrictDerEncoding(flags) && !DERSignatureUtil.isValidSignatureEncoding(signature)) {
-      logger.error("Signature was not stricly encoded der: " + signature.hex)
+      logger.error("Signature was not strictly encoded der: " + signature.hex)
       SignatureValidationErrorNotStrictDerEncoding
     } else if (ScriptFlagUtil.requireLowSValue(flags) && !DERSignatureUtil.isLowS(signature)) {
       logger.error("Signature did not have a low s value")
@@ -67,6 +68,28 @@ trait TransactionSignatureChecker extends BitcoinSLogger {
       if (isValid) SignatureValidationSuccess
       else nullFailCheck(Seq(signature), SignatureValidationErrorIncorrectSignatures, flags)
     }
+  }
+
+  def checkSig(
+    txSig: TxSigComponent,
+    scrpt: Seq[ScriptToken],
+    pubKey: ECPublicKey,
+    sig: ECDigitalSignature,
+    flags: Seq[ScriptFlag]): ScriptError \/ Boolean = {
+    val sigsRemovedScript = BitcoinScriptUtil.calculateScriptForChecking(txSig, sig, scrpt)
+    val hashTypeByte = if (sig.bytes.nonEmpty) sig.bytes.last else 0x00.toByte
+    val hashType = HashType(ByteVector(0.toByte, 0.toByte, 0.toByte, hashTypeByte))
+    val spk = ScriptPubKey.fromAsm(sigsRemovedScript)
+    val hashForSignature = TransactionSignatureSerializer.hashForSignature(
+      TxSigComponent(txSig.transaction, txSig.inputIndex, TransactionOutput(txSig.output.value, spk), txSig.flags),
+      hashType)
+    val sigWithoutHashType = stripHashType(sig)
+    val success = pubKey.verify(hashForSignature, sigWithoutHashType)
+
+    if (!success && ScriptFlagUtil.requireScriptVerifyNullFail(flags) && sig.bytes.nonEmpty)
+      -\/(ScriptErrorSigNullFail)
+    else
+      \/-(success)
   }
 
   /**
@@ -122,12 +145,51 @@ trait TransactionSignatureChecker extends BitcoinSLogger {
 
   }
 
+  def multiSignatureEvaluator2(
+    txSignatureComponent: TxSigComponent,
+    script: Seq[ScriptToken],
+    sigs: List[ECDigitalSignature],
+    pubKeys: List[ECPublicKey],
+    flags: Seq[ScriptFlag],
+    requiredSigs: Long): ScriptError \/ Boolean = {
+    logger.trace("Signatures inside of helper: " + sigs)
+    logger.trace("Public keys inside of helper: " + pubKeys)
+    if (sigs.size > pubKeys.size) {
+      logger.info("We have more sigs than we have public keys remaining")
+      if (sigs.exists(_.bytes.nonEmpty))
+        -\/(ScriptErrorSigNullFail)
+      else \/-(false)
+    } else if (requiredSigs > sigs.size) {
+      logger.info("We do not have enough sigs to meet the threshold of requireSigs in the multiSignatureScriptPubKey")
+      if (sigs.exists(_.bytes.nonEmpty))
+        -\/(ScriptErrorSigNullFail)
+      else -\/(ScriptErrorInvalidStackOperation)
+    } else if (sigs.nonEmpty && pubKeys.nonEmpty) {
+      val sig = sigs.head
+      val pubKey = pubKeys.head
+      val result = checkSig(txSignatureComponent, script, pubKey, sig, flags)
+      result match {
+        case \/-(b) if (!b) => multiSignatureEvaluator2(txSignatureComponent, script, sigs, pubKeys.tail, flags, requiredSigs)
+        case \/-(_) => multiSignatureEvaluator2(txSignatureComponent, script, sigs.tail, pubKeys.tail, flags, requiredSigs - 1)
+        case -\/(_) => if (ScriptFlagUtil.requireScriptVerifyNullFail(flags) && sig.bytes.nonEmpty)
+          -\/(ScriptErrorSigNullFail)
+        else
+          result
+      }
+    } else if (sigs.isEmpty) {
+      //means that we have checked all of the sigs against the public keys
+      //validation succeeds
+      \/-(true)
+    } else if (sigs.exists(_.bytes.nonEmpty))
+      -\/(ScriptErrorSigNullFail)
+    else \/-(false)
+  }
+
   /**
    * If the NULLFAIL flag is set as defined in BIP146, it checks to make sure all failed signatures were an empty byte vector
    * [[https://github.com/bitcoin/bips/blob/master/bip-0146.mediawiki#NULLFAIL]]
    */
   private def nullFailCheck(sigs: Seq[ECDigitalSignature], result: TransactionSignatureCheckerResult, flags: Seq[ScriptFlag]): TransactionSignatureCheckerResult = {
-    logger.info("Result before nullfail check:" + result)
     val nullFailEnabled = ScriptFlagUtil.requireScriptVerifyNullFail(flags)
     if (nullFailEnabled && !result.isValid && sigs.exists(_.bytes.nonEmpty)) {
       //we need to check that all signatures were empty byte vectors, else this fails because of BIP146 and nullfail

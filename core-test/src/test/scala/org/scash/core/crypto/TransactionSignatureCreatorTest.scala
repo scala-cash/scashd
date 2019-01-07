@@ -81,7 +81,7 @@ class TransactionSignatureCreatorTest extends FlatSpec with MustMatchers with Sc
       val txSignature = TransactionSignatureCreator.createSig(
         txSignatureComponent,
         privateKey,
-        HashType.sigHashAll)
+        HashType.sigHashAllForkId)
 
       //add the signature to the scriptSig instead of having an empty scriptSig
       val signedScriptSig = P2PKScriptSignature(txSignature)
@@ -115,7 +115,7 @@ class TransactionSignatureCreatorTest extends FlatSpec with MustMatchers with Sc
         inputIndex = inputIndex,
         output = TransactionOutput(CurrencyUnits.zero, scriptPubKey),
         Policy.standardScriptVerifyFlags)
-      val txSignature = TransactionSignatureCreator.createSig(txSignatureComponent, privateKey, HashType.sigHashAll)
+      val txSignature = TransactionSignatureCreator.createSig(txSignatureComponent, privateKey, HashType.sigHashAllForkId)
 
       //add the signature to the scriptSig instead of having an empty scriptSig
       val signedScriptSig = P2PKHScriptSignature(txSignature, publicKey)

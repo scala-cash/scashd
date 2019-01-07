@@ -35,7 +35,7 @@ trait TransactionTestUtil extends BitcoinSLogger {
    * @param scriptPubKey
    * @return the transaction and the output index of the scriptPubKey
    */
-  def buildCreditingTransaction(scriptPubKey: ScriptPubKey, amount: Option[CurrencyUnit] = None): (Transaction, UInt32) = {
+  def buildCreditingTransaction(scriptPubKey: ScriptPubKey, amount: CurrencyUnit = CurrencyUnits.zero): (Transaction, UInt32) = {
     //this needs to be all zeros according to these 3 lines in bitcoin core
     //https://github.com/bitcoin/bitcoin/blob/605c17844ea32b6d237db6d83871164dc7d59dab/src/test/script_tests.cpp#L64
     //https://github.com/bitcoin/bitcoin/blob/80d1f2e48364f05b2cdf44239b3a1faa0277e58e/src/primitives/transaction.h#L32
@@ -44,7 +44,7 @@ trait TransactionTestUtil extends BitcoinSLogger {
     val outpoint = EmptyTransactionOutPoint
     val scriptSignature = ScriptSignature("020000")
     val input = TransactionInput(outpoint, scriptSignature, TransactionConstants.sequence)
-    val output = TransactionOutput(amount.getOrElse(CurrencyUnits.zero), scriptPubKey)
+    val output = TransactionOutput(amount, scriptPubKey)
 
     val tx = BaseTransaction(TransactionConstants.version, Seq(input), Seq(output), TransactionConstants.lockTime)
     (tx, UInt32.zero)
