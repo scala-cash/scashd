@@ -176,8 +176,8 @@ sealed abstract class ScriptInterpreter {
       logger.error("We have reached the maximum amount of script operations allowed")
       logger.error("Here are the remaining operations in the script: " + program.script)
       loop(ScriptProgram(program, ScriptErrorOpCount), opCount)
-    } else if (scriptByteVector.length > 10000 && !program.isInstanceOf[ExecutedScriptProgram]) {
-      logger.error("We cannot run a script that is larger than 10,000 bytes")
+    } else if (scriptByteVector.length > Consensus.maxScriptSize && !program.isInstanceOf[ExecutedScriptProgram]) {
+      logger.error(s"We cannot run a script that is larger than ${Consensus.maxScriptSize} bytes")
       program match {
         case p: PreExecutionScriptProgram =>
           loop(ScriptProgram(ScriptProgram.toExecutionInProgress(p), ScriptErrorScriptSize), opCount)
