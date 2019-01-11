@@ -8,7 +8,7 @@ import org.scash.core.consensus.Consensus
 import org.scash.core.crypto._
 import org.scash.core.script
 import org.scash.core.script.constant._
-import org.scash.core.script.control.{ ControlOperationsInterpreter, OP_VERIFY }
+import org.scash.core.script.control.OP_VERIFY
 import org.scash.core.script.flag.{ ScriptFlagUtil, ScriptVerifyNullDummy }
 import org.scash.core.script.result._
 import org.scash.core.script._
@@ -54,6 +54,8 @@ sealed abstract class CryptoInterpreter {
   }
 
   /**
+   * The entire transaction's outputs, inputs, and script (from the most
+   * recently-executed OP_CODESEPARATOR to the end) are hashed.
    * The signature used by [[OP_CHECKSIG]] must be a valid signature for this hash and public key.
    */
   def opCheckSig(p: ScriptProgram): ScriptProgram = {
@@ -83,7 +85,8 @@ sealed abstract class CryptoInterpreter {
    * signatures must be placed in the scriptSig using the same order as their corresponding public keys
    * were placed in the scriptPubKey or redeemScript. If all signatures are valid, 1 is returned, 0 otherwise.
    * Due to a bug, one extra unused value is removed from the stack.
-   * ([sig ...] numOfSigs [pubkey ...] -> numOfPubKeys -- bool)
+   * https://bitcoin.stackexchange.com/questions/40669/checkmultisig-a-worked-out-example
+   * ([sig ...] numOfSigs [pubkey ...] numOfPubKeys -> bool)
    */
   def opCheckMultiSig(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_CHECKMULTISIG), "Script top must be OP_CHECKMULTISIG")
@@ -106,9 +109,9 @@ sealed abstract class CryptoInterpreter {
   }
 
   /**
-    * All of the signature checking words will only match signatures to the data
-    * after the most recently-executed [[OP_CODESEPARATOR]].
-    */
+   * All of the signature checking words will only match signatures to the data
+   * after the most recently-executed [[OP_CODESEPARATOR]].
+   */
   def opCodeSeparator(p: ScriptProgram): ScriptProgram = {
     require(p.script.headOption.contains(OP_CODESEPARATOR), "Script top must be OP_CODESEPARATOR")
     p match {
@@ -120,19 +123,18 @@ sealed abstract class CryptoInterpreter {
     }
   }
 
+  @tailrec
   private def multiCheckSig(program: ScriptProgram): ScriptError \/ ScriptProgram = program match {
     case p: PreExecutionScriptProgram => multiCheckSig(ScriptProgram.toExecutionInProgress(p))
     case p: ExecutedScriptProgram => \/-(p)
     case p: ExecutionInProgressScriptProgram =>
-      (for {
-        nKeysToken <- script.getTop(p.stack)
-        nKeys <- ScriptNumber(p, nKeysToken)
+      for {
+        nKeys <- script.getTop(p.stack).flatMap(ScriptNumber(p, _))
         _ <- script.failIf(nKeys < ScriptNumber.zero || nKeys.toInt > Consensus.maxPublicKeysPerMultiSig, ScriptErrorPubKeyCount)
         _ <- script.checkSize(p.stack, nKeys.toInt + 2)
         restOfStack = p.stack.tail
         stackSansPubKeys = restOfStack.slice(nKeys.toInt, restOfStack.size)
-        nSigsToken <- script.getTop(stackSansPubKeys)
-        nSigs <- ScriptNumber(p, nSigsToken)
+        nSigs <- script.getTop(stackSansPubKeys).flatMap(ScriptNumber(p, _))
         _ <- script.failIf(nSigs < ScriptNumber.zero || nSigs > nKeys, ScriptErrorSigCount)
         pubKeys = restOfStack.slice(0, nKeys.toInt).map(k => ECPublicKey(k.bytes))
         stackSansSigsAndPubKeys = stackSansPubKeys.tail.slice(nSigs.toInt, stackSansPubKeys.tail.size)
@@ -146,13 +148,10 @@ sealed abstract class CryptoInterpreter {
         nonSepScript = BitcoinScriptUtil.removeOpCodeSeparator(p)
         r <- TxSigCheck.multiSigCheck(p.txSignatureComponent, nonSepScript, sigs, pubKeys, p.flags, nSigs.toLong)
         opBoolean = if (r) OP_TRUE else OP_FALSE
-      } yield ScriptProgram(p, opBoolean :: stackSansSigsAndPubKeys.tail, p.script.tail))
+      } yield ScriptProgram(p, opBoolean :: stackSansSigsAndPubKeys.tail, p.script.tail)
   }
 
-  /**
-   * The entire transaction's outputs, inputs, and script (from the most
-   * recently-executed OP_CODESEPARATOR to the end) are hashed.
-   */
+  @tailrec
   private def checkSig(program: ScriptProgram): ScriptError \/ ScriptProgram = program match {
     case p: PreExecutionScriptProgram => checkSig(ScriptProgram.toExecutionInProgress(p))
     case p: ExecutedScriptProgram => \/-(p)

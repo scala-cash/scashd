@@ -1,23 +1,22 @@
 package org.scash.core.crypto
 /**
-  *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
-  *   Copyright (c) 2018-2019 The SCash Developers (MIT License)
-  *   https://github.com/scala-cash/scash
-  */
+ *   Copyright (c) 2016-2018 Chris Stewart (MIT License)
+ *   Copyright (c) 2018-2019 The SCash Developers (MIT License)
+ *   https://github.com/scala-cash/scash
+ */
 import org.scash.core.script.constant.ScriptToken
 import org.scash.core.script.crypto._
-import org.scash.core.script.flag.{ ScriptFlag, ScriptFlagUtil }
+import org.scash.core.script.flag.{ ScriptFlag, ScriptVerifyNullFail }
 import org.scash.core.util.{ BitcoinSLogger, BitcoinScriptUtil }
-import org.scash.core.crypto
+import org.scash.core.{ crypto, script }
 import org.scash.core.protocol.script.ScriptPubKey
 import org.scash.core.protocol.transaction.TransactionOutput
 import org.scash.core.script.result.{ ScriptError, ScriptErrorInvalidStackOperation, ScriptErrorSigNullFail }
-
 import scalaz.{ -\/, \/, \/- }
 import scalaz.std.list._
 import scalaz.syntax.applicative._
-
 import scodec.bits.ByteVector
+
 import scala.annotation.tailrec
 
 /**
@@ -43,8 +42,7 @@ trait TxSigCheck extends BitcoinSLogger {
     nonSepScript: Seq[ScriptToken],
     pubKey: ECPublicKey,
     sig: ECDigitalSignature,
-    flags: Seq[ScriptFlag]
-  ): ScriptError \/ Boolean = {
+    flags: Seq[ScriptFlag]): ScriptError \/ Boolean = {
     val sigsRemovedScript = BitcoinScriptUtil.calculateScriptForChecking(txSig, sig, nonSepScript)
     val hashTypeByte = sig.bytes.lastOption.getOrElse(0x00.toByte)
     val hashType = HashType(ByteVector(0.toByte, 0.toByte, 0.toByte, hashTypeByte))
@@ -107,9 +105,8 @@ trait TxSigCheck extends BitcoinSLogger {
    * [[https://github.com/bitcoin/bips/blob/master/bip-0146.mediawiki#NULLFAIL]]
    */
   private def nullFailCheck(sigs: List[ECDigitalSignature], flags: Seq[ScriptFlag], isValid: Boolean): ScriptError \/ Boolean =
-    if (!isValid && ScriptFlagUtil.requireScriptVerifyNullFail(flags) && sigs.exists(_.bytes.nonEmpty))
-      -\/(ScriptErrorSigNullFail)
-    else \/-(isValid)
+    script.checkFlag(flags)(ScriptVerifyNullFail, ScriptErrorSigNullFail, !isValid && sigs.exists(_.bytes.nonEmpty))
+      .map(_ => isValid)
 
   /** Removes the hash type from the [[crypto.ECDigitalSignature]] */
   private def stripHashType(sig: ECDigitalSignature) = ECDigitalSignature(sig.bytes.init)
