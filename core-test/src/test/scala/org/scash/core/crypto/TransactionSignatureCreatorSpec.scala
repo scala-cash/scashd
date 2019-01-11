@@ -12,7 +12,7 @@ import org.scalacheck.{ Prop, Properties }
  */
 class TransactionSignatureCreatorSpec extends Properties("TransactionSignatureCreatorSpec") {
   private val logger = BitcoinSLogger.logger
-  /*
+
   property("Must generate a valid signature for a p2pk transaction") =
     Prop.forAll(TransactionGenerators.signedP2PKTransaction) {
       case (txSignatureComponent: TxSigComponent, _) =>
@@ -74,19 +74,14 @@ class TransactionSignatureCreatorSpec extends Properties("TransactionSignatureCr
         Seq(ScriptErrorUnsatisfiedLocktime, ScriptErrorPushSize).contains(result)
 
     }
-*/
+
   property("generate a valid signature for a escrow timeout transaction") =
     Prop.forAll(TransactionGenerators.spendableEscrowTimeoutTransaction) { txSigComponent: TxSigComponent =>
       val program = PreExecutionScriptProgram(txSigComponent)
-      println("================")
-      println(program.flags)
-      println(program.stack)
-      println(program.script)
-      println("-------------------------")
       val result = ScriptInterpreter.run(program)
       result == ScriptOk
     }
-  /*
+
   property("fail to evaluate a locktime escrow timeout transaction") = {
     Prop.forAll(TransactionGenerators.unspendableEscrowTimeoutTransaction) { txSigComponent: TxSigComponent =>
       val program = PreExecutionScriptProgram(txSigComponent)
@@ -94,5 +89,5 @@ class TransactionSignatureCreatorSpec extends Properties("TransactionSignatureCr
       result != ScriptOk
     }
   }
-*/
+
 }

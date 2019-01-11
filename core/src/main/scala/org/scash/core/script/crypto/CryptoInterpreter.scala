@@ -9,13 +9,12 @@ import org.scash.core.crypto._
 import org.scash.core.script
 import org.scash.core.script.constant._
 import org.scash.core.script.control.{ ControlOperationsInterpreter, OP_VERIFY }
-import org.scash.core.script.flag.{ ScriptFlagUtil, ScriptVerifyMinimalData, ScriptVerifyNullDummy }
+import org.scash.core.script.flag.{ ScriptFlagUtil, ScriptVerifyNullDummy }
 import org.scash.core.script.result._
-import org.scash.core.script.{ ExecutedScriptProgram, ExecutionInProgressScriptProgram, PreExecutionScriptProgram, ScriptProgram }
+import org.scash.core.script._
 import org.scash.core.util.{ BitcoinSLogger, BitcoinScriptUtil, CryptoUtil }
 
 import scalaz.{ -\/, \/, \/- }
-import scalaz.syntax.std.option._
 import scodec.bits.ByteVector
 
 import scala.annotation.tailrec
@@ -64,49 +63,14 @@ sealed abstract class CryptoInterpreter {
 
   /** Runs [[OP_CHECKSIG]] with an [[OP_VERIFY]] afterwards. */
   def opCheckSigVerify(program: ScriptProgram): ScriptProgram = {
-    require(
-      program.script.headOption.contains(OP_CHECKSIGVERIFY),
-      "Script top must be OP_CHECKSIGVERIFY")
-    if (program.stack.size < 2) {
-      logger.error("Stack must contain at least 3 items for OP_CHECKSIGVERIFY")
-      ScriptProgram(program, ScriptErrorInvalidStackOperation)
-    } else {
-      val newScript = OP_CHECKSIG :: OP_VERIFY :: program.script.tail
-      val newProgram = ScriptProgram(program, newScript, ScriptProgram.Script)
-      val programFromOpCheckSig = opCheckSig(newProgram)
-      logger.debug("Stack after OP_CHECKSIG execution: " + programFromOpCheckSig.stack)
-      programFromOpCheckSig match {
-        case _: PreExecutionScriptProgram | _: ExecutedScriptProgram =>
-          programFromOpCheckSig
-        case _: ExecutionInProgressScriptProgram => ControlOperationsInterpreter.opVerify(programFromOpCheckSig)
-      }
-    }
-  }
-
-  /** Runs [[OP_CHECKSIG]] with an [[OP_VERIFY]] afterwards. */
-  def opCheckSigVerify2(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_CHECKSIGVERIFY), "Script top must be OP_CHECKSIGVERIFY")
     checkSig(ScriptProgram(program, OP_CHECKSIG :: program.script.tail, ScriptProgram.Script))
       .flatMap(p => p.stackTopIsTrue match {
-        case true => \/-(ScriptProgram(p, p.stack.tail, p.script.tail))
+        case true => \/-(ScriptProgram(p, p.stack.tail, p.script))
         case false => -\/(ScriptErrorCheckSigVerify)
       })
       .leftMap(ScriptProgram(program, _))
       .merge
-  }
-  /**
-   * All of the signature checking words will only match signatures to the data
-   * after the most recently-executed [[OP_CODESEPARATOR]].
-   */
-  def opCodeSeparator(p: ScriptProgram): ScriptProgram = {
-    require(p.script.headOption.contains(OP_CODESEPARATOR), "Script top must be OP_CODESEPARATOR")
-    p match {
-      case e: PreExecutionScriptProgram => opCodeSeparator(ScriptProgram.toExecutionInProgress(e))
-      case e: ExecutionInProgressScriptProgram =>
-        val indexOfOpCodeSeparator = p.originalScript.size - p.script.size
-        ScriptProgram(e, p.script.tail, ScriptProgram.Script, indexOfOpCodeSeparator)
-      case e: ExecutedScriptProgram => ScriptProgram(e, ScriptErrorUnknownError)
-    }
   }
 
   /**
@@ -121,106 +85,7 @@ sealed abstract class CryptoInterpreter {
    * Due to a bug, one extra unused value is removed from the stack.
    * ([sig ...] numOfSigs [pubkey ...] -> numOfPubKeys -- bool)
    */
-  @tailrec
-  final def opCheckMultiSig2(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_CHECKMULTISIG), "Script top must be OP_CHECKMULTISIG")
-    val flags = program.flags
-    program match {
-      case p: PreExecutionScriptProgram => opCheckMultiSig2(ScriptProgram.toExecutionInProgress(p))
-      case p: ExecutedScriptProgram => p
-      case p: ExecutionInProgressScriptProgram =>
-        if (program.stack.size < 1) {
-          logger.error("OP_CHECKMULTISIG requires at least 1 stack elements")
-          ScriptProgram(p, ScriptErrorInvalidStackOperation)
-        } else {
-          //these next lines remove the appropriate stack/script values after the signatures have been checked
-          val nPossibleSignatures = BitcoinScriptUtil.numPossibleSignaturesOnStack(p)
-          if (nPossibleSignatures < ScriptNumber.zero) {
-            logger.error("We cannot have the number of pubkeys in the script be negative")
-            ScriptProgram(program, ScriptErrorPubKeyCount)
-          } else if (ScriptFlagUtil.requireMinimalData(flags) && !nPossibleSignatures.isShortestEncoding) {
-            logger.error("The required signatures and the possible signatures must be encoded as the shortest number possible")
-            ScriptProgram(p, ScriptErrorUnknownError)
-          } else if (program.stack.size < 2) {
-            logger.error("We need at least 2 operations on the stack")
-            ScriptProgram(p, ScriptErrorInvalidStackOperation)
-          } else {
-            val mRequiredSignatures: ScriptNumber = BitcoinScriptUtil.numRequiredSignaturesOnStack(program)
-
-            if (ScriptFlagUtil.requireMinimalData(flags) && !mRequiredSignatures.isShortestEncoding) {
-              logger.error("The required signatures val must be the shortest encoding as possible")
-              return ScriptProgram(p, ScriptErrorUnknownError)
-            }
-
-            if (mRequiredSignatures < ScriptNumber.zero) {
-              logger.error("We cannot have the number of signatures specified in the script be negative")
-              return ScriptProgram(p, ScriptErrorSigCount)
-            }
-            logger.debug("nPossibleSignatures: " + nPossibleSignatures)
-            val (pubKeysScriptTokens, stackWithoutPubKeys) =
-              (
-                program.stack.tail.slice(0, nPossibleSignatures.toInt),
-                program.stack.tail.slice(nPossibleSignatures.toInt, program.stack.tail.size))
-
-            val pubKeys = pubKeysScriptTokens.map(key => ECPublicKey(key.bytes))
-            logger.debug("Public keys on the stack: " + pubKeys)
-            logger.debug("Stack without pubkeys: " + stackWithoutPubKeys)
-            logger.debug("mRequiredSignatures: " + mRequiredSignatures)
-
-            //+1 is for the fact that we have the # of sigs + the script token indicating the # of sigs
-            val signaturesScriptTokens = program.stack.tail.slice(
-              nPossibleSignatures.toInt + 1,
-              nPossibleSignatures.toInt + mRequiredSignatures.toInt + 1)
-            val signatures = signaturesScriptTokens.map(token => ECDigitalSignature(token.bytes))
-            logger.debug("Signatures on the stack: " + signatures)
-
-            //this contains the extra Script OP that is required for OP_CHECKMULTISIG
-            val stackWithoutPubKeysAndSignatures = stackWithoutPubKeys.tail.slice(mRequiredSignatures.toInt, stackWithoutPubKeys.tail.size)
-            println(s"stackWithoutPubKeysSigs $stackWithoutPubKeysAndSignatures")
-            logger.debug("stackWithoutPubKeysAndSignatures: " + stackWithoutPubKeysAndSignatures)
-            if (pubKeys.size > Consensus.maxPublicKeysPerMultiSig) {
-              logger.error("We have more public keys than the maximum amount of public keys allowed")
-              ScriptProgram(p, ScriptErrorPubKeyCount)
-            } else if (signatures.size > pubKeys.size) {
-              logger.error("We have more signatures than public keys inside OP_CHECKMULTISIG")
-              ScriptProgram(p, ScriptErrorSigCount)
-            } else if (stackWithoutPubKeysAndSignatures.size < 1) {
-              logger.error("OP_CHECKMULTISIG must have a remaining element on the stack afterk execution")
-              //this is because of a bug in bitcoin core for the implementation of OP_CHECKMULTISIG
-              //https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp#L966
-              ScriptProgram(p, ScriptErrorInvalidStackOperation)
-            } else if (ScriptFlagUtil.requireNullDummy(flags) &&
-              (stackWithoutPubKeysAndSignatures.nonEmpty && stackWithoutPubKeysAndSignatures.head.bytes.nonEmpty)) {
-              logger.error("Script flag null dummy was set however the first element in the script signature was not an OP_0, stackWithoutPubKeysAndSignatures: " + stackWithoutPubKeysAndSignatures)
-              ScriptProgram(p, ScriptErrorSigNullDummy)
-            } else {
-              //remove the last OP_CODESEPARATOR
-              val removedOpCodeSeparatorsScript = BitcoinScriptUtil.removeOpCodeSeparator(p)
-              println("=========CHECKMULTISIG 1 ================")
-              println(removedOpCodeSeparatorsScript.map(_.hex))
-              println(s"sigs: $signatures")
-              println(s"pubKeys: $pubKeys")
-              println(s"flags: $flags")
-              println(s"nKeys: ${nPossibleSignatures.toLong}")
-              println(s"nSigs: ${mRequiredSignatures.toLong}")
-
-              val isValidSignatures: TransactionSignatureCheckerResult =
-                TransactionSignatureChecker.multiSignatureEvaluator(
-                  p.txSignatureComponent,
-                  removedOpCodeSeparatorsScript, signatures,
-                  pubKeys, flags, mRequiredSignatures.toLong)
-              println(s" is valid $isValidSignatures")
-              println("=========================")
-              //remove the extra OP_0 (null dummy) for OP_CHECKMULTISIG from the stack
-              val restOfStack = stackWithoutPubKeysAndSignatures.tail
-              handleSignatureValidation(program, isValidSignatures, restOfStack)
-            }
-          }
-        }
-    }
-  }
-
-  final def opCheckMultiSig(program: ScriptProgram): ScriptProgram = {
+  def opCheckMultiSig(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_CHECKMULTISIG), "Script top must be OP_CHECKMULTISIG")
     multiCheckSig(program).leftMap(ScriptProgram(program, _)).merge
   }
@@ -228,42 +93,40 @@ sealed abstract class CryptoInterpreter {
   /** Runs [[OP_CHECKMULTISIG]] with an [[OP_VERIFY]] afterwards */
   def opCheckMultiSigVerify(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_CHECKMULTISIGVERIFY), "Script top must be OP_CHECKMULTISIGVERIFY")
-    if (program.stack.size < 3) {
-      logger.error("Stack must contain at least 3 items for OP_CHECKMULTISIGVERIFY")
-      ScriptProgram(program, ScriptErrorInvalidStackOperation)
-    } else {
-      val newScript = OP_CHECKMULTISIG :: OP_VERIFY :: program.script.tail
-      val newProgram = ScriptProgram(program, newScript, ScriptProgram.Script)
-      val programFromOpCheckMultiSig = opCheckMultiSig(newProgram)
-      logger.debug("Stack after OP_CHECKMULTSIG execution: " + programFromOpCheckMultiSig.stack)
-      programFromOpCheckMultiSig match {
-        case _: PreExecutionScriptProgram | _: ExecutedScriptProgram =>
-          programFromOpCheckMultiSig
-        case _: ExecutionInProgressScriptProgram => ControlOperationsInterpreter.opVerify(programFromOpCheckMultiSig)
-      }
-    }
-  }
-  def opCheckMultiSigVerify2(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_CHECKMULTISIGVERIFY), "Script top must be OP_CHECKMULTISIGVERIFY")
     (for {
       _ <- script.checkSize(program.stack, 3)
       p <- multiCheckSig(ScriptProgram(program, OP_CHECKMULTISIG :: program.script.tail, ScriptProgram.Script))
-      r <- if (p.stackTopIsTrue) \/-(ScriptProgram(p, p.stack.tail, p.script.tail)) else -\/(ScriptErrorCheckSigVerify)
+      r <- p.stackTopIsTrue match {
+        case true => \/-(ScriptProgram(p, p.stack.tail, p.script))
+        case false => -\/(ScriptErrorCheckSigVerify)
+      }
     } yield r)
       .leftMap(ScriptProgram(program, _))
       .merge
+  }
+
+  /**
+    * All of the signature checking words will only match signatures to the data
+    * after the most recently-executed [[OP_CODESEPARATOR]].
+    */
+  def opCodeSeparator(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_CODESEPARATOR), "Script top must be OP_CODESEPARATOR")
+    p match {
+      case e: PreExecutionScriptProgram => opCodeSeparator(ScriptProgram.toExecutionInProgress(e))
+      case e: ExecutionInProgressScriptProgram =>
+        val indexOfOpCodeSeparator = p.originalScript.size - p.script.size
+        ScriptProgram(e, p.script.tail, ScriptProgram.Script, indexOfOpCodeSeparator)
+      case e: ExecutedScriptProgram => ScriptProgram(e, ScriptErrorUnknownError)
+    }
   }
 
   private def multiCheckSig(program: ScriptProgram): ScriptError \/ ScriptProgram = program match {
     case p: PreExecutionScriptProgram => multiCheckSig(ScriptProgram.toExecutionInProgress(p))
     case p: ExecutedScriptProgram => \/-(p)
     case p: ExecutionInProgressScriptProgram =>
-      println(s"stack: ${p.stack.map(_.hex)}")
       (for {
         nKeysToken <- script.getTop(p.stack)
-        _ = println(s"h $nKeysToken")
         nKeys <- ScriptNumber(p, nKeysToken)
-        _ = println(s"nkeys $nKeys")
         _ <- script.failIf(nKeys < ScriptNumber.zero || nKeys.toInt > Consensus.maxPublicKeysPerMultiSig, ScriptErrorPubKeyCount)
         _ <- script.checkSize(p.stack, nKeys.toInt + 2)
         restOfStack = p.stack.tail
@@ -277,23 +140,12 @@ sealed abstract class CryptoInterpreter {
           .slice(nKeys.toInt + 1, nKeys.toInt + nSigs.toInt + 1)
           .map(t => ECDigitalSignature(t.bytes))
         //this is because of a bug in bitcoin core for the implementation of OP_CHECKMULTISIG
-        _ = println(s"stackWithoutPksSigs $stackSansSigsAndPubKeys")
         _ <- script.checkSize(stackSansSigsAndPubKeys, 1)
         notEmpty = stackSansSigsAndPubKeys.headOption.fold(false)(_.bytes.nonEmpty)
         _ <- script.checkFlag(p.flags)(ScriptVerifyNullDummy, ScriptErrorSigNullDummy, notEmpty)
         nonSepScript = BitcoinScriptUtil.removeOpCodeSeparator(p)
-        _ = println("=========CHECKMULTISIG 2 ================")
-        _ = println(nonSepScript.map(_.hex))
-        _ = println(s"sigs: $sigs")
-        _ = println(s"pubKeys: $pubKeys")
-        _ = println(s"flags: ${p.flags}")
-        _ = println(s"nKeys: ${nKeys.toLong}")
-        _ = println(s"nSigs: ${nSigs.toLong}")
-        _ = println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        r <- TransactionSignatureChecker.multiSigCheck(p.txSignatureComponent, nonSepScript, sigs, pubKeys, p.flags, nSigs.toLong)
+        r <- TxSigCheck.multiSigCheck(p.txSignatureComponent, nonSepScript, sigs, pubKeys, p.flags, nSigs.toLong)
         opBoolean = if (r) OP_TRUE else OP_FALSE
-        _ = println(s"verify: $opBoolean")
-        _ = println("=========================")
       } yield ScriptProgram(p, opBoolean :: stackSansSigsAndPubKeys.tail, p.script.tail))
   }
 
@@ -312,8 +164,7 @@ sealed abstract class CryptoInterpreter {
         _ <- SigEncoding.checkTxSigEncoding(sig, p.flags)
         _ <- SigEncoding.checkPubKeyEncoding(pubKey, p.flags)
         nonSepScript = BitcoinScriptUtil.removeOpCodeSeparator(p)
-        r <- TransactionSignatureChecker.checkSig(p.txSignatureComponent, nonSepScript, pubKey, sig, p.flags)
-        _ = println(r)
+        r <- TxSigCheck.checkSig(p.txSignatureComponent, nonSepScript, pubKey, sig, p.flags)
         opBoolean = if (r) OP_TRUE else OP_FALSE
       } yield ScriptProgram(p, opBoolean :: p.stack.drop(2), p.script.tail)
   }
@@ -329,36 +180,6 @@ sealed abstract class CryptoInterpreter {
   private def executeHashFunction(p: => ScriptProgram, hashFunction: ByteVector => HashDigest) = p.stack match {
     case h :: t => ScriptProgram(p, ScriptConstant(hashFunction(h.bytes).bytes) :: t, p.script.tail)
     case _ => ScriptProgram(p, ScriptErrorInvalidStackOperation)
-  }
-
-  private def handleSignatureValidation(program: ScriptProgram, result: TransactionSignatureCheckerResult, restOfStack: Seq[ScriptToken]): ScriptProgram = result match {
-    case SignatureValidationSuccess =>
-      //means that all of the signatures were correctly encoded and
-      //that all of the signatures were valid signatures for the given
-      //public keys
-      ScriptProgram(program, OP_TRUE +: restOfStack, program.script.tail)
-    case SignatureValidationErrorNotStrictDerEncoding =>
-      //this means the script fails immediately
-      //set the valid flag to false on the script
-      //see BIP66 for more information on this
-      //https://github.com/bitcoin/bips/blob/master/bip-0066.mediawiki#specification
-      ScriptProgram(program, ScriptErrorSigDer)
-    case SignatureValidationErrorIncorrectSignatures =>
-      //this means that signature verification failed, however all signatures were encoded correctly
-      //just push a OP_FALSE onto the stack
-      ScriptProgram(program, OP_FALSE +: restOfStack, program.script.tail)
-    case SignatureValidationErrorSignatureCount =>
-      //means that we did not have enough signatures for OP_CHECKMULTISIG
-      ScriptProgram(program, ScriptErrorInvalidStackOperation)
-    case SignatureValidationErrorPubKeyEncoding =>
-      //means that a public key was not encoded correctly
-      ScriptProgram(program, ScriptErrorPubKeyType)
-    case SignatureValidationErrorHighSValue =>
-      ScriptProgram(program, ScriptErrorSigHighS)
-    case SignatureValidationErrorHashType =>
-      ScriptProgram(program, ScriptErrorSigHashType)
-    case SignatureValidationErrorNullFail =>
-      ScriptProgram(program, ScriptErrorSigNullFail)
   }
 }
 
