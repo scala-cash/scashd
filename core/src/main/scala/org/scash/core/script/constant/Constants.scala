@@ -140,15 +140,20 @@ object ScriptNumber extends Factory[ScriptNumber] {
     } else if (requireMinimal && !BitcoinScriptUtil.isMinimalEncoding(bytes)) {
       logger.error("The given bytes was not the shortest encoding for the script number: " + bytes)
       -\/(ScriptErrorUnknownError)
-    } else {
-      \/-(fromBytes(bytes))
-    }
+    } else
+      \/.fromTryCatchNonFatal(fromBytes(bytes))
+        .leftMap { err =>
+          logger.error(err.getLocalizedMessage)
+          ScriptErrorUnknownError
+        }
 
   def apply(
     p: ScriptProgram,
-    token: ScriptToken): ScriptProgram \/ ScriptNumber =
-    apply(ScriptFlagUtil.requireMinimalData(p.flags))(token.bytes)
-      .leftMap(ScriptProgram(p, _))
+    token: ScriptToken): ScriptError \/ ScriptNumber = token match {
+    case s: ScriptNumber => \/-(s)
+    case s: ScriptConstant => apply(ScriptFlagUtil.requireMinimalData(p.flags))(s.bytes)
+    case _ => -\/(ScriptErrorUnknownError)
+  }
 
   def apply(
     p: ScriptProgram,
@@ -162,14 +167,14 @@ object ScriptNumber extends Factory[ScriptNumber] {
 
   def apply(bytes: ByteVector, requireMinimal: Boolean): Try[ScriptNumber] = apply(BitcoinSUtil.encodeHex(bytes), requireMinimal)
 
+  //TODO: remove this function
   def apply(hex: String, requireMinimal: Boolean): Try[ScriptNumber] = {
     if (hex.size > maximumElementSize) {
       Failure(new IllegalArgumentException(s"Script number overflow. limit: $maximumElementSize size: ${hex.size}"))
     } else if (requireMinimal && !BitcoinScriptUtil.isMinimalEncoding(hex)) {
       Failure(new IllegalArgumentException("The given hex was not the shortest encoding for the script number: " + hex))
     } else {
-      val number = apply(hex)
-      Success(number)
+      Try(apply(hex))
     }
   }
 
