@@ -275,7 +275,8 @@ object Int32 extends Factory[Int32] with BaseNumbers[Int32] {
 
   lazy val zero = Int32(0)
   lazy val one = Int32(1)
-
+  lazy val two = Int32(2)
+  lazy val three = Int32(3)
   lazy val min = Int32(-2147483648)
   lazy val max = Int32(2147483647)
 
