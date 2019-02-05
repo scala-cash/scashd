@@ -3,7 +3,25 @@ package org.scash.core.script.crypto
 import org.scash.core.script.crypto.BaseHashT.BaseHashT
 
 import scalaz.Equal
+import scalaz.syntax.equal._
+
 import scodec.bits.ByteVector
+
+abstract class HashT
+case object SIGHASHFORKID extends HashT
+case object SIGHASHANYONECANPAY extends HashT
+
+object HashT {
+  private val sigHashForkIdB = 0x40.toByte
+  private val sigHashAnyoneCanPayB = 0x80.toByte
+
+  implicit class HashTOps(arg: HashT) {
+    def byte: Byte = arg match {
+      case SIGHASHFORKID => sigHashForkIdB
+      case SIGHASHANYONECANPAY => sigHashAnyoneCanPayB
+    }
+  }
+}
 
 object BaseHashT {
   abstract class BaseHashT
@@ -11,7 +29,7 @@ object BaseHashT {
   case object SIGHASHALL extends BaseHashT
   case object SIGHASHNONE extends BaseHashT
   case object SIGHASHSINGLE extends BaseHashT
-  case object SIGHASHUNSUPPORTED extends BaseHashT
+  case class SIGHASHUNSUPPORTED(b: Byte) extends BaseHashT
 
   private val _1f = 0x1f.toByte
 
@@ -24,14 +42,26 @@ object BaseHashT {
     case `sigHashAllB` => SIGHASHALL
     case `sigHashNoneB` => SIGHASHNONE
     case `sigHashSingleB` => SIGHASHSINGLE
-    case _ => SIGHASHUNSUPPORTED
+    case _ => SIGHASHUNSUPPORTED(b)
   }
 
   def unapply(b: BaseHashT) = b match {
-    case SIGHASHUNSUPPORTED => sigHashUnsupportedB
+    case SIGHASHUNSUPPORTED(n) => n
     case SIGHASHALL => sigHashAllB
     case SIGHASHNONE => sigHashNoneB
     case SIGHASHSINGLE => sigHashSingleB
+  }
+  implicit class BaseHashTOps(b: BaseHashT) {
+    def *>(h: HashT) = h match {
+      case SIGHASHFORKID => BCHashT(b)
+      case SIGHASHANYONECANPAY => LegacyAnyoneCanPayHashT(b)
+    }
+
+    def *>(h1: HashT, h2: HashT) = (h1, h2) match {
+      case (SIGHASHANYONECANPAY, SIGHASHANYONECANPAY) => LegacyAnyoneCanPayHashT(b)
+      case (SIGHASHFORKID, SIGHASHFORKID) => BCHashT(b)
+      case _ => BCHAnyoneCanPayHashT(b)
+    }
   }
 
   implicit val equalBaseHash = new Equal[BaseHashT] {
@@ -39,62 +69,56 @@ object BaseHashT {
       case (SIGHASHALL, SIGHASHALL) => true
       case (SIGHASHNONE, SIGHASHNONE) => true
       case (SIGHASHSINGLE, SIGHASHSINGLE) => true
+      case (SIGHASHUNSUPPORTED(n1), SIGHASHUNSUPPORTED(n2)) => n1 == n2
       case _ => false
     }
   }
 }
 
-
-sealed trait HashTypeT
-case class LegacyHashT(abc: BaseHashT) extends HashTypeT
-case class BCHashT(abc: BaseHashT) extends HashTypeT
-case class LegacyAnyoneCanPayHashT(abc: BaseHashT) extends HashTypeT
-case class BCHAnyoneCanPayHashT(abc: BaseHashT) extends HashTypeT
+sealed trait HashType2
+case class LegacyHashT(abc: BaseHashT) extends HashType2
+case class LegacyAnyoneCanPayHashT(abc: BaseHashT) extends HashType2
+case class BCHashT(abc: BaseHashT) extends HashType2
+case class BCHAnyoneCanPayHashT(abc: BaseHashT) extends HashType2
 
 object HashType2 {
 
-  private object HashT {
-    abstract class HashT
-    case object SIGHASHFORKID extends HashT
-    case object SIGHASHANYONECANPAY extends HashT
-
-    private val sigHashForkIdB = 0x40.toByte
-    private val sigHashAnyoneCanPayB = 0x80.toByte
-
-    implicit class HashTOps(arg: HashT) {
-      def byte: Byte = arg match {
-        case SIGHASHFORKID => sigHashForkIdB
-        case SIGHASHANYONECANPAY => sigHashAnyoneCanPayB
-      }
-    }
-  }
-
   private val zero = 0.toByte
 
-  def fromByte(b: Byte): HashTypeT = {
-    val baseHashT = BaseHashT(b)
-    val hasAnyoneCanPay = (b & HashT.SIGHASHANYONECANPAY.byte) != zero
+  def apply(b: ByteVector): HashType2 = apply(b.last)
 
-    if ((b & HashT.SIGHASHFORKID.byte) != zero)
+  def apply(b: BaseHashT) = LegacyHashT(b)
+
+  def apply(b: Byte): HashType2 = {
+    val baseHashT = BaseHashT(b)
+    val hasAnyoneCanPay = (b & SIGHASHANYONECANPAY.byte) != zero
+
+    if ((b & SIGHASHFORKID.byte) != zero)
       if (hasAnyoneCanPay) BCHAnyoneCanPayHashT(baseHashT)
       else BCHashT(baseHashT)
     else if (hasAnyoneCanPay) LegacyAnyoneCanPayHashT(baseHashT)
     else LegacyHashT(baseHashT)
   }
 
-  implicit class HashTypeTOps(hashType: HashTypeT) {
-
-    def bch = hashType match {
-      case LegacyHashT(h) => BCHashT(h)
-      case LegacyAnyoneCanPayHashT(h) => BCHAnyoneCanPayHashT(h)
-      case a => a
+  implicit class HashType2Ops(hashType: HashType2) {
+    def has(h: HashT): Boolean = (h, hashType) match {
+      case (SIGHASHFORKID, _: BCHAnyoneCanPayHashT | _: BCHashT) => true
+      case (SIGHASHANYONECANPAY, _: BCHAnyoneCanPayHashT | _: LegacyAnyoneCanPayHashT) => true
+      case _ => false
     }
 
-    def byte = ByteVector( hashType match {
-      case BCHashT(b) => BaseHashT.unapply(b) | HashT.SIGHASHFORKID.byte
-      case BCHAnyoneCanPayHashT(b) => BaseHashT.unapply(b) | HashT.SIGHASHANYONECANPAY.byte | HashT.SIGHASHFORKID.byte
+    def has(b: BaseHashT): Boolean = hashType match {
+      case BCHashT(h2) => h2 === b
+      case BCHAnyoneCanPayHashT(h2) => h2 === b
+      case LegacyHashT(h2) => h2 === b
+      case LegacyAnyoneCanPayHashT(h2) => h2 === b
+    }
+
+    def byte = ByteVector(hashType match {
+      case BCHashT(b) => BaseHashT.unapply(b) | SIGHASHFORKID.byte
+      case BCHAnyoneCanPayHashT(b) => BaseHashT.unapply(b) | SIGHASHANYONECANPAY.byte | SIGHASHFORKID.byte
       case LegacyHashT(b) => BaseHashT.unapply(b)
-      case LegacyAnyoneCanPayHashT(b) => BaseHashT.unapply(b) | HashT.SIGHASHANYONECANPAY.byte
+      case LegacyAnyoneCanPayHashT(b) => BaseHashT.unapply(b) | SIGHASHANYONECANPAY.byte
     })
   }
 }
