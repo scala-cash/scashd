@@ -1,10 +1,8 @@
 package org.scash.core.script.crypto
 
 import org.scash.core.script.crypto.BaseHashT.BaseHashT
-
 import scalaz.Equal
 import scalaz.syntax.equal._
-
 import scodec.bits.ByteVector
 
 abstract class HashT
@@ -29,11 +27,12 @@ object BaseHashT {
   case object SIGHASHALL extends BaseHashT
   case object SIGHASHNONE extends BaseHashT
   case object SIGHASHSINGLE extends BaseHashT
+  case object SIGHASHZERO extends BaseHashT
   case class SIGHASHUNSUPPORTED(b: Byte) extends BaseHashT
 
   private val _1f = 0x1f.toByte
 
-  private val sigHashUnsupportedB = 0.toByte
+  private val sigHashZeroB = 0.toByte
   private val sigHashAllB = 1.toByte
   private val sigHashNoneB = 2.toByte
   private val sigHashSingleB = 3.toByte
@@ -42,15 +41,19 @@ object BaseHashT {
     case `sigHashAllB` => SIGHASHALL
     case `sigHashNoneB` => SIGHASHNONE
     case `sigHashSingleB` => SIGHASHSINGLE
+    case `sigHashZeroB` => SIGHASHZERO
     case _ => SIGHASHUNSUPPORTED(b)
   }
+
 
   def unapply(b: BaseHashT) = b match {
     case SIGHASHUNSUPPORTED(n) => n
     case SIGHASHALL => sigHashAllB
     case SIGHASHNONE => sigHashNoneB
     case SIGHASHSINGLE => sigHashSingleB
+    case SIGHASHZERO => sigHashZeroB
   }
+
   implicit class BaseHashTOps(b: BaseHashT) {
     def *>(h: HashT) = h match {
       case SIGHASHFORKID => BCHashT(b)
@@ -69,6 +72,7 @@ object BaseHashT {
       case (SIGHASHALL, SIGHASHALL) => true
       case (SIGHASHNONE, SIGHASHNONE) => true
       case (SIGHASHSINGLE, SIGHASHSINGLE) => true
+      case (SIGHASHZERO, SIGHASHZERO) => true
       case (SIGHASHUNSUPPORTED(n1), SIGHASHUNSUPPORTED(n2)) => n1 == n2
       case _ => false
     }
@@ -88,6 +92,9 @@ object HashType2 {
   def apply(b: ByteVector): HashType2 = apply(b.last)
 
   def apply(b: BaseHashT) = LegacyHashT(b)
+
+  val SIGHASH_ANYONECANPAY = BaseHashT.SIGHASHZERO *> SIGHASHANYONECANPAY
+  val SIGHASH_FORKID = BaseHashT.SIGHASHZERO *> SIGHASHFORKID
 
   def apply(b: Byte): HashType2 = {
     val baseHashT = BaseHashT(b)
@@ -120,6 +127,16 @@ object HashType2 {
       case LegacyHashT(b) => BaseHashT.unapply(b)
       case LegacyAnyoneCanPayHashT(b) => BaseHashT.unapply(b) | SIGHASHANYONECANPAY.byte
     })
+  }
+
+  implicit val equalBaseHash = new Equal[HashType2] {
+    override def equal(a1: HashType2, a2: HashType2): Boolean = (a1, a2) match {
+      case (BCHashT(h1), BCHashT(h2)) => h1 === h2
+      case (BCHAnyoneCanPayHashT(h1), BCHAnyoneCanPayHashT(h2)) => h1 === h2
+      case (LegacyHashT(h1), LegacyHashT(h2)) => h1 === h2
+      case (LegacyAnyoneCanPayHashT(h1) , LegacyAnyoneCanPayHashT(h2) ) => h1 === h2
+      case _ => false
+    }
   }
 }
 

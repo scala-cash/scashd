@@ -40,7 +40,7 @@ class HashType2Test extends FlatSpec with MustMatchers {
   }
 
   it must "find a hash type by its byte value" in {
-    HashType2(0.toByte) must be(LegacyHashT(SIGHASHUNSUPPORTED(0.toByte)))
+    HashType2(0.toByte) must be(LegacyHashT(SIGHASHZERO))
     HashType2(1.toByte) must be(LegacyHashT(SIGHASHALL))
     HashType2(2.toByte) must be(LegacyHashT(SIGHASHNONE))
     HashType2(3.toByte) must be(LegacyHashT(SIGHASHSINGLE))
@@ -72,34 +72,58 @@ class HashType2Test extends FlatSpec with MustMatchers {
     HashType2(Int32(105512910).bytes) has (SIGHASHANYONECANPAY) must be(true)
   }
 
-  /*
-      it must "return the correct byte for a given hashtype" in {
-        SIGHASH_ALL(HashType.sigHashAllByte).byte must be(0x01.toByte)
-        HashType.sigHashNone.byte must be(0x02.toByte)
-        HashType.sigHashSingle.byte must be(0x03.toByte)
-        HashType.sigHashAnyoneCanPay.byte must be(0x80.toByte)
-        HashType.sigHashAllAnyoneCanPay.byte must be(0x81.toByte)
-        HashType.sigHashNoneAnyoneCanPay.byte must be(0x82.toByte)
-        HashType.sigHashSingleAnyoneCanPay.byte must be(0x83.toByte)
-      }
+  it must "return the correct byte for a given hashtype" in {
+    HashType2(SIGHASHALL).byte must be(ByteVector(0x01))
+    HashType2(SIGHASHNONE).byte must be(ByteVector(0x02))
+    HashType2(SIGHASHSINGLE).byte must be(ByteVector(0x03))
+    HashType2.SIGHASH_ANYONECANPAY.byte must be(ByteVector(0x80))
+    (SIGHASHALL *> SIGHASHANYONECANPAY).byte must be(ByteVector(0x81))
+    (SIGHASHNONE *> SIGHASHANYONECANPAY).byte must be(ByteVector(0x82))
+    (SIGHASHSINGLE *> SIGHASHANYONECANPAY).byte must be(ByteVector(0x83))
 
-      it must "intercept require statements for each hashType with illegal inputs" in {
-        intercept[IllegalArgumentException] {
-          SIGHASH_ALL(Int32(2))
-        }
-      }
+    (SIGHASHALL *> SIGHASHFORKID).byte must be(ByteVector(0x41))
+    (SIGHASHNONE *> SIGHASHFORKID).byte must be(ByteVector(0x42))
+    (SIGHASHSINGLE *> SIGHASHFORKID).byte must be(ByteVector(0x43))
+    HashType2.SIGHASH_FORKID.byte must be(ByteVector(0x40))
+    (SIGHASHALL *> (SIGHASHANYONECANPAY, SIGHASHFORKID)).byte must be(ByteVector(0xc1))
+    (SIGHASHNONE *> (SIGHASHANYONECANPAY, SIGHASHFORKID)).byte must be(ByteVector(0xc2))
+    (SIGHASHSINGLE *> (SIGHASHANYONECANPAY, SIGHASHFORKID)).byte must be(ByteVector(0xc3))
 
-      it must "find each specific hashType from byte sequence of default value" in {
-        //tests each hashtypes overriding fromBytes function
-        HashType(HashType.sigHashAll.num.bytes) must be(HashType.sigHashAll)
-        HashType(HashType.sigHashNone.num.bytes) must be(HashType.sigHashNone)
-        HashType(HashType.sigHashSingle.num.bytes) must be(HashType.sigHashSingle)
-        HashType(HashType.sigHashAnyoneCanPay.num.bytes) must be(HashType.sigHashAnyoneCanPay)
-        HashType(HashType.sigHashAllAnyoneCanPay.num.bytes) must be(HashType.sigHashAllAnyoneCanPay)
-        HashType(HashType.sigHashNoneAnyoneCanPay.num.bytes) must be(HashType.sigHashNoneAnyoneCanPay)
-        HashType(HashType.sigHashSingleAnyoneCanPay.num.bytes) must be(HashType.sigHashSingleAnyoneCanPay)
-      }
+  }
 
+  it must "find each specific hashType from Bytevector of default value" in {
+    HashType2(ByteVector(0x01)) must be(HashType2(SIGHASHALL))
+    HashType2(ByteVector(0x02)) must be(HashType2(SIGHASHNONE))
+    HashType2(ByteVector(0x03)) must be(HashType2(SIGHASHSINGLE))
+    HashType2(ByteVector(0x80)) must be(HashType2.SIGHASH_ANYONECANPAY)
+    HashType2(ByteVector(0x81)) must be(SIGHASHALL *> SIGHASHANYONECANPAY)
+    HashType2(ByteVector(0x82)) must be(SIGHASHNONE *> SIGHASHANYONECANPAY)
+    HashType2(ByteVector(0x83)) must be(SIGHASHSINGLE *> SIGHASHANYONECANPAY)
 
-    */
+    HashType2(ByteVector(0x41)) must be(SIGHASHALL *> SIGHASHFORKID)
+    HashType2(ByteVector(0x42)) must be((SIGHASHNONE *> SIGHASHFORKID))
+    HashType2(ByteVector(0x43)) must be(SIGHASHSINGLE *> SIGHASHFORKID)
+    HashType2(ByteVector(0x40)) must be(HashType2.SIGHASH_FORKID)
+    HashType2(ByteVector(0xc1)) must be(SIGHASHALL *> (SIGHASHANYONECANPAY, SIGHASHFORKID))
+    HashType2(ByteVector(0xc2)) must be(SIGHASHNONE *> (SIGHASHANYONECANPAY, SIGHASHFORKID))
+    HashType2(ByteVector(0xc3)) must be(SIGHASHSINGLE *> (SIGHASHANYONECANPAY, SIGHASHFORKID))
+  }
+
+  it must "find each specific hashType from Byte of default value" in {
+    HashType2(0x01.toByte) must be(HashType2(SIGHASHALL))
+    HashType2(0x02.toByte) must be(HashType2(SIGHASHNONE))
+    HashType2(0x03.toByte) must be(HashType2(SIGHASHSINGLE))
+    HashType2(0x80.toByte) must be(HashType2.SIGHASH_ANYONECANPAY)
+    HashType2(0x81.toByte) must be(SIGHASHALL *> SIGHASHANYONECANPAY)
+    HashType2(0x82.toByte) must be(SIGHASHNONE *> SIGHASHANYONECANPAY)
+    HashType2(0x83.toByte) must be(SIGHASHSINGLE *> SIGHASHANYONECANPAY)
+
+    HashType2(0x41.toByte) must be(SIGHASHALL *> SIGHASHFORKID)
+    HashType2(0x42.toByte) must be((SIGHASHNONE *> SIGHASHFORKID))
+    HashType2(0x43.toByte) must be(SIGHASHSINGLE *> SIGHASHFORKID)
+    HashType2(0x40.toByte) must be(HashType2.SIGHASH_FORKID)
+    HashType2(0xc1.toByte) must be(SIGHASHALL *> (SIGHASHANYONECANPAY, SIGHASHFORKID))
+    HashType2(0xc2.toByte) must be(SIGHASHNONE *> (SIGHASHANYONECANPAY, SIGHASHFORKID))
+    HashType2(0xc3.toByte) must be(SIGHASHSINGLE *> (SIGHASHANYONECANPAY, SIGHASHFORKID))
+  }
 }
