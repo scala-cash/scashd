@@ -2,7 +2,7 @@ package org.scash.core.gen
 
 import org.scalacheck.Gen
 import org.scash.core.crypto._
-import org.scash.core.script.crypto.HashType
+import org.scash.core.script.crypto.SigHashType
 import org.scash.core.util.CryptoUtil
 
 /**
@@ -82,13 +82,8 @@ sealed abstract class CryptoGenerators {
     hash = CryptoUtil.sha256Hash160(pubKey.bytes)
   } yield hash
 
-  /** Generates a random [[HashType]] */
-  def hashType: Gen[HashType] = Gen.oneOf(HashType.sigHashAll, HashType.sigHashNone, HashType.sigHashSingle,
-    HashType.sigHashAnyoneCanPay, HashType.sigHashSingleAnyoneCanPay, HashType.sigHashNoneAnyoneCanPay,
-    HashType.sigHashAllAnyoneCanPay)
-
-  /** Generates a random [[HashType]] with forkid */
-  def forkIdHashType: Gen[HashType] = Gen.oneOf(HashType.hashTypeForkIds)
+  /** Generates a random [[SigHashType]] with forkid for BCH txs */
+  def bchHashType: Gen[SigHashType] = Gen.oneOf(SigHashType.bchHashTypes)
 
   def extVersion: Gen[ExtKeyVersion] = Gen.oneOf(MainNetPriv, MainNetPub, TestNet3Priv, TestNet3Pub)
 

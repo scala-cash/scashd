@@ -1,22 +1,17 @@
 package org.scash.core.util
 
 import java.io.{ ByteArrayOutputStream, IOException }
-import java.util
 
-import org.bitcoinj.core.{ ECKey, Sha256Hash }
+import org.bitcoinj.core.ECKey
 import org.bitcoinj.params.TestNet3Params
-import org.scash.core.config.TestNet3
+
 import org.scash.core.crypto.ECPublicKey
 import org.scash.core.protocol.CompactSizeUInt
-import org.scash.core.protocol.script.{ ScriptPubKey, UpdateScriptPubKeyAsm }
-import org.scash.core.protocol.transaction.{ Transaction, TransactionOutput }
-import org.scash.core.script.ScriptOperationFactory
-import org.scash.core.script.constant.ScriptToken
-import org.scash.core.script.crypto.SIGHASH_ANYONECANPAY
+import org.scash.core.protocol.script.ScriptPubKey
+
 import org.slf4j.LoggerFactory
 import scodec.bits.ByteVector
 
-import scala.collection.JavaConversions._
 /**
  * Created by chris on 2/23/16.
  */

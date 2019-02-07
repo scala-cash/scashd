@@ -4,7 +4,7 @@ import org.scash.core.crypto.DoubleSha256Digest
 import org.scash.core.number.{ Int32, UInt32 }
 import org.scash.core.protocol.script.ScriptPubKey
 import org.scash.core.protocol.transaction.Transaction
-import org.scash.core.script.crypto.HashType
+import org.scash.core.script.crypto.SigHashType
 import org.scash.core.serializers.script.ScriptParser
 import spray.json._
 
@@ -24,7 +24,7 @@ object HashTestCaseProtocol extends DefaultJsonProtocol {
       val script = ScriptPubKey(rawScript)
       val inputIndex = UInt32(elements(2).convertTo[Int])
       val hashTypeNum = Int32(elements(3).convertTo[Int])
-      val hashType = HashType(hashTypeNum)
+      val hashType = SigHashType.decode(hashTypeNum)
       val regularSigHash = DoubleSha256Digest(elements(4).convertTo[String])
       val noForkKidSigHash = DoubleSha256Digest(elements(5).convertTo[String])
       val replayProtectedSigHash = DoubleSha256Digest(elements(6).convertTo[String])
@@ -55,7 +55,7 @@ object HashTestCaseProtocol extends DefaultJsonProtocol {
       val script = ScriptPubKey(rawScript)
       val inputIndex = UInt32(elements(2).convertTo[Int])
       val hashTypeNum = Int32(elements(3).convertTo[Int])
-      val hashType = HashType(hashTypeNum)
+      val hashType = SigHashType.decode(hashTypeNum)
       val sigHash = DoubleSha256Digest(elements(4).convertTo[String])
 
       LegacySignatureHashTestCase(

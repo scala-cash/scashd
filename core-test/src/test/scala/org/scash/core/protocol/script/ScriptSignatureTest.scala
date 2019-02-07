@@ -2,11 +2,10 @@ package org.scash.core.protocol.script
 
 import org.scash.core.crypto._
 import org.scash.core.currency.CurrencyUnits
-import org.scash.core.number.Int32
 import org.scash.core.policy.Policy
 import org.scash.core.protocol.script.testprotocol.{ LegacySignatureHashTestCase, SignatureHashTestCase }
 import org.scash.core.protocol.transaction.{ Transaction, TransactionOutput }
-import org.scash.core.script.crypto.{ HashType, SIGHASH_ALL }
+import org.scash.core.script.crypto.{ BaseHashType, SigHashType }
 import org.scash.core.serializers.script.RawScriptSignatureParser
 import org.scash.core.util.{ BitcoinSLogger, BitcoinSUtil, TestUtil }
 import org.scash.core.script.flag.{ ScriptEnableReplayProtection, ScriptEnableSigHashForkId }
@@ -28,7 +27,7 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
   }
 
   it must "derive the signature hash type from the signature" in {
-    HashType(ByteVector.fromByte(TestUtil.scriptSig.signatures.head.bytes.last)) must be(HashType.sigHashAll)
+    SigHashType(TestUtil.scriptSig.signatures.head.bytes.last) must be(SigHashType(BaseHashType.ALL))
   }
 
   it must "find the digital signature for a p2sh script signature" in {
@@ -54,19 +53,19 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
       ECDigitalSignature("30440220257b57cb09386d82c4328461f8fe200c2f381d6b635e2a2f4ea40c8d945e9ec102201ec67d58d51a309af4d8896e9147a42944e9f9833a456f733ea5fa6954ed2fed01")))
   }
   it must "find the hash type for a p2sh script signature" in {
-    HashType(ByteVector.fromByte(TestUtil.p2shInputScript2Of2.signatures.head.bytes.last)) must be(HashType.sigHashAll)
+    SigHashType(TestUtil.p2shInputScript2Of2.signatures.head.bytes.last) must be(SigHashType(BaseHashType.ALL))
   }
 
   it must "find the digital signature and hash type for a SIGHASH_SINGLE" in {
     TestUtil.p2shInputScriptSigHashSingle.signatures.head.hex must be("3045022100dfcfafcea73d83e1c54d444a19fb30d17317f922c19e2ff92dcda65ad09cba24022001e7a805c5672c49b222c5f2f1e67bb01f87215fb69df184e7c16f66c1f87c2903")
-    HashType(TestUtil.p2shInputScriptSigHashSingle.signatures.head.bytes.last) must be(HashType.sigHashSingle)
+    SigHashType(TestUtil.p2shInputScriptSigHashSingle.signatures.head.bytes.last) must be(SigHashType(BaseHashType.SINGLE))
   }
 
   it must "find the hash type for the weird occurrence of hash type being 0 on the blockchain" in {
     //from this tx https://btc.blockr.io/api/v1/tx/raw/c99c49da4c38af669dea436d3e73780dfdb6c1ecf9958baa52960e8baee30e73
     val hex = "8c493046022100d23459d03ed7e9511a47d13292d3430a04627de6235b6e51a40f9cd386f2abe3022100e7d25b080f0bb8d8d5f878bba7d54ad2fda650ea8d158a33ee3cbd11768191fd004104b0e2c879e4daf7b9ab68350228c159766676a14f5815084ba166432aab46198d4cca98fa3e9981d0a90b2effc514b76279476550ba3663fdcaff94c38420e9d5"
     val scriptSig: ScriptSignature = RawScriptSignatureParser.read(hex)
-    HashType(scriptSig.signatures.head.bytes.last) must be(SIGHASH_ALL(Int32.zero))
+    SigHashType(scriptSig.signatures.head.bytes.last) must be(SigHashType(BaseHashType.ZERO))
   }
 
   it must "have an empty script signature" in {
@@ -108,11 +107,7 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
     val lines = try source.getLines.filterNot(_.isEmpty).map(_.trim).mkString("\n") finally source.close()
     val testCases = lines.parseJson.convertTo[Seq[SignatureHashTestCase]]
 
-    for {
-      testCaseI <- testCases.zipWithIndex
-    } yield {
-      val (test, _) = testCaseI
-
+    testCases.map { test =>
       Transaction(test.transaction.hex) must be(test.transaction)
 
       val output = TransactionOutput(CurrencyUnits.zero, test.script)
@@ -155,11 +150,7 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
     val lines = try source.getLines.filterNot(_.isEmpty).map(_.trim).mkString("\n") finally source.close()
     val testCases = lines.parseJson.convertTo[Seq[LegacySignatureHashTestCase]]
 
-    for {
-      testCaseI <- testCases.zipWithIndex
-    } yield {
-      val (testCase, _) = testCaseI
-
+    testCases.map { testCase =>
       Transaction(testCase.transaction.hex) must be(testCase.transaction)
 
       val output = TransactionOutput(CurrencyUnits.zero, testCase.script)
@@ -173,7 +164,6 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
       val test = TransactionSignatureSerializer.hashForSignature(regTx, testCase.hashType)
 
       test must be(DoubleSha256Digest(BitcoinSUtil.flipEndianness(testCase.regularSigHash.hex)))
-
     }
   }
 }

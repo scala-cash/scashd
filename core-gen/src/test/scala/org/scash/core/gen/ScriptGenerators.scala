@@ -9,7 +9,7 @@ import org.scash.core.policy.Policy
 import org.scash.core.protocol.script._
 import org.scash.core.protocol.transaction.{ TransactionConstants, TransactionOutput }
 import org.scash.core.script.constant.{ ScriptNumber, _ }
-import org.scash.core.script.crypto.HashType
+import org.scash.core.script.crypto.SigHashType
 import org.scash.core.util.BitcoinSLogger
 import org.scash.core.wallet.signer.{ MultiSigSigner, P2PKHSigner, P2PKSigner }
 
@@ -220,7 +220,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedP2PKScriptSignature: Gen[(P2PKScriptSignature, P2PKScriptPubKey, ECPrivateKey)] = for {
     privateKey <- CryptoGenerators.privateKey
-    hashType <- CryptoGenerators.forkIdHashType
+    hashType <- CryptoGenerators.bchHashType
     publicKey = privateKey.publicKey
     scriptPubKey = P2PKScriptPubKey(publicKey)
     (creditingTx, outputIndex) = TransactionGenerators.buildCreditingTransaction(scriptPubKey)
@@ -240,7 +240,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedP2PKHScriptSignature: Gen[(P2PKHScriptSignature, P2PKHScriptPubKey, ECPrivateKey)] = for {
     privateKey <- CryptoGenerators.privateKey
-    hashType <- CryptoGenerators.forkIdHashType
+    hashType <- CryptoGenerators.bchHashType
     publicKey = privateKey.publicKey
     scriptPubKey = P2PKHScriptPubKey(publicKey)
     (creditingTx, outputIndex) = TransactionGenerators.buildCreditingTransaction(scriptPubKey)
@@ -258,7 +258,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedMultiSignatureScriptSignature: Gen[(MultiSignatureScriptSignature, MultiSignatureScriptPubKey, Seq[ECPrivateKey])] = for {
     (privateKeys, requiredSigs) <- CryptoGenerators.privateKeySeqWithRequiredSigs
-    hashType <- CryptoGenerators.forkIdHashType
+    hashType <- CryptoGenerators.bchHashType
     publicKeys = privateKeys.map(_.publicKey)
     multiSigScriptPubKey = MultiSignatureScriptPubKey(requiredSigs, publicKeys)
     emptyDigitalSignatures = privateKeys.map(_ => EmptyDigitalSignature)
@@ -290,7 +290,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedCLTVScriptSignature(cltvLockTime: ScriptNumber, lockTime: UInt32, sequence: UInt32): Gen[(CLTVScriptSignature, CLTVScriptPubKey, Seq[ECPrivateKey])] = for {
     (scriptPubKey, privKeys) <- randomNonLockTimeNonP2SHScriptPubKey
-    hashType <- CryptoGenerators.forkIdHashType
+    hashType <- CryptoGenerators.bchHashType
     cltv = CLTVScriptPubKey(cltvLockTime, scriptPubKey)
   } yield scriptPubKey match {
     case m: MultiSignatureScriptPubKey =>
@@ -313,7 +313,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
    */
   def signedCSVScriptSignature(csvScriptNum: ScriptNumber, sequence: UInt32): Gen[(CSVScriptSignature, CSVScriptPubKey, Seq[ECPrivateKey])] = for {
     (scriptPubKey, privKeys) <- randomNonLockTimeNonP2SHScriptPubKey
-    hashType <- CryptoGenerators.forkIdHashType
+    hashType <- CryptoGenerators.bchHashType
     csv = CSVScriptPubKey(csvScriptNum, scriptPubKey)
   } yield scriptPubKey match {
     case m: MultiSignatureScriptPubKey =>
@@ -356,7 +356,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
 
   def signedMultiSigEscrowTimeoutScriptSig(escrowTimeout: EscrowTimeoutScriptPubKey, privKeys: Seq[ECPrivateKey],
     sequence: UInt32, outputs: Seq[TransactionOutput], amount: CurrencyUnit): Gen[(EscrowTimeoutScriptSignature, EscrowTimeoutScriptPubKey, Seq[ECPrivateKey])] = for {
-    hashType <- CryptoGenerators.forkIdHashType
+    hashType <- CryptoGenerators.bchHashType
     scriptSig = csvEscrowTimeoutHelper(sequence, escrowTimeout, privKeys, Some(escrowTimeout.escrow.requiredSigs),
       hashType, true, outputs, amount)
   } yield (scriptSig, escrowTimeout, privKeys)
@@ -365,7 +365,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
   def timeoutEscrowTimeoutScriptSig(scriptNum: ScriptNumber, sequence: UInt32, outputs: Seq[TransactionOutput]): Gen[(EscrowTimeoutScriptSignature, EscrowTimeoutScriptPubKey, Seq[ECPrivateKey])] = for {
     (_, csv, csvPrivKeys) <- signedCSVScriptSignature(scriptNum, sequence)
     (multiSigScriptPubKey, _) <- multiSigScriptPubKey
-    hashType <- CryptoGenerators.forkIdHashType
+    hashType <- CryptoGenerators.bchHashType
     csvEscrowTimeout = EscrowTimeoutScriptPubKey(multiSigScriptPubKey, csv)
     requireSigs = if (csv.nestedScriptPubKey.isInstanceOf[MultiSignatureScriptPubKey]) {
       val m = csv.nestedScriptPubKey.asInstanceOf[MultiSignatureScriptPubKey]
@@ -376,7 +376,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
 
   /** Helper function to generate [[LockTimeScriptSignature]]s */
   private def lockTimeHelper(lockTime: Option[UInt32], sequence: UInt32, lock: LockTimeScriptPubKey, privateKeys: Seq[ECPrivateKey], requiredSigs: Option[Int],
-    hashType: HashType): LockTimeScriptSignature = {
+    hashType: SigHashType): LockTimeScriptSignature = {
     val tc = TransactionConstants
     val pubKeys = privateKeys.map(_.publicKey)
     val (creditingTx, outputIndex) = TransactionGenerators.buildCreditingTransaction(tc.validLockVersion, lock)
@@ -401,7 +401,7 @@ sealed abstract class ScriptGenerators extends BitcoinSLogger {
   }
   /** Helper function to generate a signed [[EscrowTimeoutScriptSignature]] */
   private def csvEscrowTimeoutHelper(sequence: UInt32, csvEscrowTimeout: EscrowTimeoutScriptPubKey, privateKeys: Seq[ECPrivateKey],
-    requiredSigs: Option[Int], hashType: HashType, isMultiSig: Boolean,
+    requiredSigs: Option[Int], hashType: SigHashType, isMultiSig: Boolean,
     outputs: Seq[TransactionOutput] = Nil, amount: CurrencyUnit = CurrencyUnits.zero): EscrowTimeoutScriptSignature = {
     val pubKeys = privateKeys.map(_.publicKey)
     val (creditingTx, outputIndex) = TransactionGenerators.buildCreditingTransaction(

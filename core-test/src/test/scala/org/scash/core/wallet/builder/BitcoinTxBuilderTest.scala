@@ -6,11 +6,11 @@ import org.scash.core.gen.ScriptGenerators
 import org.scash.core.number.{ Int64, UInt32 }
 import org.scash.core.protocol.script._
 import org.scash.core.protocol.transaction._
-import org.scash.core.script.crypto.HashType
 import org.scash.core.util.BitcoinSLogger
 import org.scash.core.wallet.fee.SatoshisPerByte
 import org.scash.core.wallet.utxo.BitcoinUTXOSpendingInfo
 import org.scalatest.{ AsyncFlatSpec, MustMatchers }
+import org.scash.core.script.crypto.SigHashType
 
 class BitcoinTxBuilderTest extends AsyncFlatSpec with MustMatchers {
   private val logger = BitcoinSLogger.logger
@@ -22,7 +22,7 @@ class BitcoinTxBuilderTest extends AsyncFlatSpec with MustMatchers {
     val destinations = Seq(TransactionOutput(Satoshis(Int64(1)), EmptyScriptPubKey))
     val creditingTx = BaseTransaction(tc.validLockVersion, Nil, Seq(creditingOutput), tc.lockTime)
     val outPoint = TransactionOutPoint(creditingTx.txId, UInt32.zero)
-    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, HashType.sigHashAllForkId)
+    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, SigHashType.bchALL)
     val utxoMap: BitcoinTxBuilder.UTXOMap = Map(outPoint -> utxo)
     val feeUnit = SatoshisPerByte(Satoshis.one)
     val txBuilder = BitcoinTxBuilder(destinations, utxoMap, feeUnit, EmptyScriptPubKey, TestNet3)
@@ -37,7 +37,7 @@ class BitcoinTxBuilderTest extends AsyncFlatSpec with MustMatchers {
     val destinations = Seq(TransactionOutput(Satoshis(Int64(1)), EmptyScriptPubKey))
     val creditingTx = BaseTransaction(tc.validLockVersion, Nil, Seq(creditingOutput), tc.lockTime)
     val outPoint = TransactionOutPoint(creditingTx.txId, UInt32.zero)
-    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, HashType.sigHashAllForkId)
+    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, SigHashType.bchALL)
     val utxoMap: BitcoinTxBuilder.UTXOMap = Map(outPoint -> utxo)
     val feeUnit = SatoshisPerByte(Satoshis(Int64(-1)))
     val txBuilder = BitcoinTxBuilder(destinations, utxoMap, feeUnit, EmptyScriptPubKey, TestNet3)
@@ -51,7 +51,7 @@ class BitcoinTxBuilderTest extends AsyncFlatSpec with MustMatchers {
     val destinations = Seq(TransactionOutput(Satoshis(Int64(1)), EmptyScriptPubKey))
     val creditingTx = BaseTransaction(tc.validLockVersion, Nil, Seq(creditingOutput), tc.lockTime)
     val outPoint = TransactionOutPoint(creditingTx.txId, UInt32.zero)
-    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, HashType.sigHashAllForkId)
+    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, SigHashType.bchALL)
     val utxoMap: BitcoinTxBuilder.UTXOMap = Map(outPoint -> utxo)
     val feeUnit = SatoshisPerByte(Satoshis(Int64(1)))
     val txBuilder = BitcoinTxBuilder(destinations, utxoMap, feeUnit, EmptyScriptPubKey, TestNet3)
@@ -68,9 +68,9 @@ class BitcoinTxBuilderTest extends AsyncFlatSpec with MustMatchers {
     val destinations = Seq(TransactionOutput(Satoshis(Int64(1)), EmptyScriptPubKey))
     val creditingTx = BaseTransaction(tc.validLockVersion, Nil, Seq(creditingOutput), tc.lockTime)
     val outPoint = TransactionOutPoint(creditingTx.txId, UInt32.zero)
-    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, HashType.sigHashAllForkId)
+    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, SigHashType.bchALL)
     val utxoMap: BitcoinTxBuilder.UTXOMap = Map(outPoint -> utxo)
-    val utxoSpendingInfo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, HashType.sigHashAllForkId)
+    val utxoSpendingInfo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, SigHashType.bchALL)
 
     val feeUnit = SatoshisPerByte(Satoshis(Int64(1)))
     val txBuilderMap = BitcoinTxBuilder(destinations, utxoMap, feeUnit, EmptyScriptPubKey, TestNet3)
@@ -89,7 +89,7 @@ class BitcoinTxBuilderTest extends AsyncFlatSpec with MustMatchers {
     val destinations = Seq(TransactionOutput(Satoshis(Int64(1)), EmptyScriptPubKey))
     val creditingTx = BaseTransaction(tc.validLockVersion, Nil, Seq(creditingOutput), tc.lockTime)
     val outPoint = TransactionOutPoint(creditingTx.txId, UInt32.zero)
-    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), Some(EmptyScriptPubKey), HashType.sigHashAllForkId)
+    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), Some(EmptyScriptPubKey), SigHashType.bchALL)
     val utxoMap: BitcoinTxBuilder.UTXOMap = Map(outPoint -> utxo)
     val feeUnit = SatoshisPerByte(Satoshis(Int64(1)))
     val txBuilderNoRedeem = BitcoinTxBuilder(destinations, utxoMap, feeUnit, EmptyScriptPubKey, TestNet3)
@@ -105,7 +105,7 @@ class BitcoinTxBuilderTest extends AsyncFlatSpec with MustMatchers {
     val destinations = Seq(TransactionOutput(Satoshis(Int64(1)), EmptyScriptPubKey))
     val creditingTx = BaseTransaction(tc.validLockVersion, Nil, Seq(creditingOutput), tc.lockTime)
     val outPoint = TransactionOutPoint(creditingTx.txId, UInt32.zero)
-    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, HashType.sigHashAllForkId)
+    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, SigHashType.bchALL)
     val utxoMap: BitcoinTxBuilder.UTXOMap = Map(outPoint -> utxo)
 
     val feeUnit = SatoshisPerByte(Satoshis(Int64(1)))
@@ -122,7 +122,7 @@ class BitcoinTxBuilderTest extends AsyncFlatSpec with MustMatchers {
     val destinations = Seq(TransactionOutput(Satoshis(Int64(1)), EmptyScriptPubKey))
     val creditingTx = BaseTransaction(tc.validLockVersion, Nil, Seq(creditingOutput), tc.lockTime)
     val outPoint = TransactionOutPoint(creditingTx.txId, UInt32.zero)
-    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, HashType.sigHashAllForkId)
+    val utxo = BitcoinUTXOSpendingInfo(outPoint, creditingOutput, Seq(privKey), None, SigHashType.bchALL)
     val utxoMap: BitcoinTxBuilder.UTXOMap = Map(outPoint -> utxo)
 
     val feeUnit = SatoshisPerByte(Satoshis(Int64(1)))

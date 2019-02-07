@@ -4,14 +4,14 @@ import org.scash.core.crypto.DoubleSha256Digest
 import org.scash.core.number.{ Int32, UInt32 }
 import org.scash.core.protocol.script.ScriptPubKey
 import org.scash.core.protocol.transaction.Transaction
-import org.scash.core.script.crypto.HashType
+import org.scash.core.script.crypto.SigHashType
 
 case class LegacySignatureHashTestCase(
   transaction: Transaction,
   script: ScriptPubKey,
   inputIndex: UInt32,
   hashTypeNum: Int32,
-  hashType: HashType,
+  hashType: SigHashType,
   regularSigHash: DoubleSha256Digest)
 
 case class SignatureHashTestCase(
@@ -19,7 +19,7 @@ case class SignatureHashTestCase(
   script: ScriptPubKey,
   inputIndex: UInt32,
   hashTypeNum: Int32,
-  hashType: HashType,
+  hashType: SigHashType,
   regularSigHash: DoubleSha256Digest,
   noForkKidSigHash: DoubleSha256Digest,
   replayProtectedSigHash: DoubleSha256Digest)

@@ -1,9 +1,8 @@
 package org.scash.core.wallet.signer
 
-import org.scash.core.crypto._
 import org.scash.core.protocol.script._
 import org.scash.core.protocol.transaction._
-import org.scash.core.script.crypto.HashType
+import org.scash.core.script.crypto.SigHashType
 import org.scash.core.wallet.builder.TxBuilderError
 import org.scash.core.crypto._
 import org.scash.core.number.UInt32
@@ -27,9 +26,9 @@ sealed abstract class Signer {
    * @return
    */
   def sign(signers: Seq[Sign], output: TransactionOutput, unsignedTx: Transaction,
-    inputIndex: UInt32, hashType: HashType, isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[TxSigComponent]
+    inputIndex: UInt32, hashType: SigHashType, isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[TxSigComponent]
 
-  def doSign(sigComponent: TxSigComponent, sign: ByteVector => Future[ECDigitalSignature], hashType: HashType,
+  def doSign(sigComponent: TxSigComponent, sign: ByteVector => Future[ECDigitalSignature], hashType: SigHashType,
     isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[ECDigitalSignature] = {
     if (isDummySignature) {
       Future.successful(DummyECDigitalSignature)
@@ -46,7 +45,7 @@ sealed abstract class BitcoinSigner extends Signer
 sealed abstract class P2PKSigner extends BitcoinSigner {
 
   override def sign(signers: Seq[Sign], output: TransactionOutput, unsignedTx: Transaction,
-    inputIndex: UInt32, hashType: HashType, isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[TxSigComponent] = {
+    inputIndex: UInt32, hashType: SigHashType, isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[TxSigComponent] = {
     val spk = output.scriptPubKey
     if (signers.size != 1) {
       Future.fromTry(TxBuilderError.TooManySigners)
@@ -107,7 +106,7 @@ object P2PKSigner extends P2PKSigner
 sealed abstract class P2PKHSigner extends BitcoinSigner {
 
   override def sign(signers: Seq[Sign], output: TransactionOutput, unsignedTx: Transaction,
-    inputIndex: UInt32, hashType: HashType, isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[TxSigComponent] = {
+    inputIndex: UInt32, hashType: SigHashType, isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[TxSigComponent] = {
     val spk = output.scriptPubKey
     if (signers.size != 1) {
       Future.fromTry(TxBuilderError.TooManySigners)
@@ -178,7 +177,7 @@ sealed abstract class MultiSigSigner extends BitcoinSigner {
   private val logger = BitcoinSLogger.logger
 
   override def sign(signersWithPubKeys: Seq[Sign], output: TransactionOutput, unsignedTx: Transaction,
-    inputIndex: UInt32, hashType: HashType, isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[TxSigComponent] = {
+    inputIndex: UInt32, hashType: SigHashType, isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[TxSigComponent] = {
     val spk = output.scriptPubKey
     val signers = signersWithPubKeys.map(_.signFunction)
     val unsignedInput = unsignedTx.inputs(inputIndex.toInt)

@@ -2,7 +2,7 @@ package org.scash.core.wallet.utxo
 
 import org.scash.core.protocol.script.ScriptPubKey
 import org.scash.core.protocol.transaction.{ TransactionOutPoint, TransactionOutput }
-import org.scash.core.script.crypto.HashType
+import org.scash.core.script.crypto.SigHashType
 import org.scash.core.crypto.Sign
 
 /**
@@ -19,7 +19,7 @@ sealed abstract class UTXOSpendingInfo {
   /** a redeemScript, if required, to spend the output above */
   def redeemScriptOpt: Option[ScriptPubKey]
 
-  def hashType: HashType
+  def hashType: SigHashType
 }
 
 case class BitcoinUTXOSpendingInfo(
@@ -27,5 +27,5 @@ case class BitcoinUTXOSpendingInfo(
   output: TransactionOutput,
   signers: Seq[Sign],
   redeemScriptOpt: Option[ScriptPubKey],
-  hashType: HashType) extends UTXOSpendingInfo
+  hashType: SigHashType) extends UTXOSpendingInfo
 

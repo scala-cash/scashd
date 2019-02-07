@@ -1,10 +1,9 @@
 package org.scash.core.protocol.script
 
 import org.scash.core.crypto.ECDigitalSignature
-import org.scash.core.script.crypto.{ HashType, SIGHASH_ALL }
+import org.scash.core.script.crypto.{ BaseHashType, SigHashType }
 import org.scash.core.util.TestUtil
 import org.scalatest.{ FlatSpec, MustMatchers }
-import scodec.bits.ByteVector
 
 /**
  * Created by chris on 4/1/16.
@@ -16,7 +15,7 @@ class P2PKHScriptSignatureTest extends FlatSpec with MustMatchers {
       case s: P2PKHScriptSignature => s
       case _ => throw new RuntimeException("Must be p2pkh scriptSig")
     }
-    HashType.fromBytes(ByteVector.fromByte(p2pkhScriptSig.signatures.head.bytes.last)) must be(HashType.sigHashAll)
+    SigHashType(p2pkhScriptSig.signatures.head.bytes.last) must be(SigHashType(BaseHashType.ALL))
   }
 
   it must "be able to identify the signature in a p2pkh scriptSig" in {
