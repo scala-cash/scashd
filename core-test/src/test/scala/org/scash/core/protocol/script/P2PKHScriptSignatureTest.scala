@@ -15,7 +15,7 @@ class P2PKHScriptSignatureTest extends FlatSpec with MustMatchers {
       case s: P2PKHScriptSignature => s
       case _ => throw new RuntimeException("Must be p2pkh scriptSig")
     }
-    SigHashType(p2pkhScriptSig.signatures.head.bytes.last) must be(SigHashType(BaseHashType.ALL))
+    SigHashType.fromByte(p2pkhScriptSig.signatures.head.bytes.last) must be(SigHashType(BaseHashType.ALL))
   }
 
   it must "be able to identify the signature in a p2pkh scriptSig" in {

@@ -10,7 +10,6 @@ case class LegacySignatureHashTestCase(
   transaction: Transaction,
   script: ScriptPubKey,
   inputIndex: UInt32,
-  hashTypeNum: Int32,
   hashType: SigHashType,
   regularSigHash: DoubleSha256Digest)
 
@@ -18,7 +17,6 @@ case class SignatureHashTestCase(
   transaction: Transaction,
   script: ScriptPubKey,
   inputIndex: UInt32,
-  hashTypeNum: Int32,
   hashType: SigHashType,
   regularSigHash: DoubleSha256Digest,
   noForkKidSigHash: DoubleSha256Digest,

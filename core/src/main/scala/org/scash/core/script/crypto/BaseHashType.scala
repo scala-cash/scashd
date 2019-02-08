@@ -3,47 +3,47 @@ package org.scash.core.script.crypto
 import scalaz.Equal
 
 object BaseHashType {
-  abstract class BaseHashType { self =>
-    def byte: Byte = unapply(self)
-  }
-
+  abstract class BaseHashType
   case object ALL extends BaseHashType
   case object NONE extends BaseHashType
   case object SINGLE extends BaseHashType
   case object ZERO extends BaseHashType
-  private case class UNDEFINED(b: Byte) extends BaseHashType
+  case object UNDEFINED extends BaseHashType
+
+  val zeroB = 0.toByte
+  val allB = 1.toByte
+  val noneB = 2.toByte
+  val singleB = 3.toByte
 
   private val _1f = 0x1f.toByte
 
-  private val sigHashZeroB = 0.toByte
-  private val sigHashAllB = 1.toByte
-  private val sigHashNoneB = 2.toByte
-  private val sigHashSingleB = 3.toByte
-
-  def apply(b: Byte): BaseHashType = (b & _1f).toByte match {
-    case `sigHashAllB` => ALL
-    case `sigHashNoneB` => NONE
-    case `sigHashSingleB` => SINGLE
-    case `sigHashZeroB` => ZERO
-    case _ => UNDEFINED(b)
+  def apply(b2: Byte): BaseHashType = (b2 & _1f).toByte match {
+    case `allB` => ALL
+    case `noneB` => NONE
+    case `singleB` => SINGLE
+    case `zeroB` => ZERO
+    case _ => ZERO
   }
 
-  def unapply(b: BaseHashType) = b match {
-    case ALL => sigHashAllB
-    case NONE => sigHashNoneB
-    case SINGLE => sigHashSingleB
-    case ZERO => sigHashZeroB
-    case UNDEFINED(by) => by
-  }
+  object ops {
 
-  implicit val equalBaseHash = new Equal[BaseHashType] {
-    def equal(a1: BaseHashType, a2: BaseHashType) = (a1, a2) match {
-      case (SINGLE, SINGLE) => true
-      case (ALL, ALL) => true
-      case (NONE, NONE) => true
-      case (ZERO, ZERO) => true
-      case (UNDEFINED(_), UNDEFINED(_)) => true
-      case _ => false
+    implicit final class BaseHashTypeOps(private val b: BaseHashType) extends AnyVal {
+      def byte = b match {
+        case ALL => allB
+        case NONE => noneB
+        case SINGLE => singleB
+        case ZERO => zeroB
+      }
+    }
+
+    implicit val equalBaseHash = new Equal[BaseHashType] {
+      def equal(a1: BaseHashType, a2: BaseHashType) = (a1, a2) match {
+        case (SINGLE, SINGLE) => true
+        case (ALL, ALL) => true
+        case (NONE, NONE) => true
+        case (ZERO, ZERO) => true
+        case _ => false
+      }
     }
   }
 }
@@ -57,7 +57,7 @@ object HashType {
   private val sigHashForkIdB = 0x40.toByte
   private val sigHashAnyoneCanPayB = 0x80.toByte
 
-  implicit class HashTOps(arg: HashType) {
+  implicit final class HashTOps(private val arg: HashType) extends AnyVal {
     def byte: Byte = arg match {
       case FORKID => sigHashForkIdB
       case ANYONE_CANPAY => sigHashAnyoneCanPayB

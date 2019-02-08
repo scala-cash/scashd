@@ -5,16 +5,16 @@ package org.scash.core.script.crypto
  */
 
 import org.scalatest.{ FlatSpec, MustMatchers }
-import org.scash.core.number.{ Int32, UInt32 }
-import org.scash.core.script.crypto
+import org.scash.core.number.UInt32
+import org.scash.core.script.crypto.BaseHashType.ops._
 import scodec.bits.ByteVector
 
 class SigHashTypeTest extends FlatSpec with MustMatchers {
 
   "HashType" must "correctly cast with all available applies" in {
-    val hashAll = SigHashType(0x81.toByte)
-    val hashNone = SigHashType(0x82.toByte)
-    val hashSingle = SigHashType(0x83.toByte)
+    val hashAll = SigHashType.fromByte(0x81.toByte)
+    val hashNone = SigHashType.fromByte(0x82.toByte)
+    val hashSingle = SigHashType.fromByte(0x83.toByte)
 
     hashAll.has(BaseHashType.ALL) must be(true)
     hashAll mustNot be(SigHashType(BaseHashType.ALL, HashType.FORKID, HashType.ANYONE_CANPAY))
@@ -32,42 +32,42 @@ class SigHashTypeTest extends FlatSpec with MustMatchers {
   it must "roundtrip succesfully" in {
     val hashInt = SigHashType(BaseHashType.ALL)
     val b = hashInt.byte
-    val h = SigHashType(b)
+    val h = SigHashType.fromByte(b)
     hashInt must be(h)
     b must be(0x01.toByte)
   }
 
   it must "find a hash type by its byte value" in {
-    SigHashType(0.toByte) must be(SigHashType(BaseHashType.ZERO))
-    SigHashType(1.toByte) must be(SigHashType(BaseHashType.ALL))
-    SigHashType(2.toByte) must be(SigHashType(BaseHashType.NONE))
-    SigHashType(3.toByte) must be(SigHashType(BaseHashType.SINGLE))
-    SigHashType(0x40.toByte) has (HashType.FORKID) must be(true)
-    SigHashType(0x80.toByte) has (HashType.ANYONE_CANPAY) must be(true)
+    SigHashType.fromByte(0.toByte) must be(SigHashType(BaseHashType.ZERO))
+    SigHashType.fromByte(1.toByte) must be(SigHashType(BaseHashType.ALL))
+    SigHashType.fromByte(2.toByte) must be(SigHashType(BaseHashType.NONE))
+    SigHashType.fromByte(3.toByte) must be(SigHashType(BaseHashType.SINGLE))
+    SigHashType.fromByte(0x40.toByte) has (HashType.FORKID) must be(true)
+    SigHashType.fromByte(0x80.toByte) has (HashType.ANYONE_CANPAY) must be(true)
 
   }
 
   it must "default to SIGHASH_ALL if the given string/byte is not known" in {
-    SigHashType.from4Bytes(ByteVector(0x124)) must be(SigHashType.decode(Int32(ByteVector(0x124))))
+    SigHashType.from4Bytes(ByteVector(0x124)) must be(SigHashType.decode(UInt32(ByteVector(0x124))))
   }
 
   it must "find hashType for number 1190874345" in {
     //1190874345 & 0x80 = 0x80
-    val num = Int32(1190874345)
+    val num = UInt32(1190874345)
     SigHashType.decode(num).has(HashType.ANYONE_CANPAY) must be(true)
   }
 
   it must "determine if a given number is of the correct SigHashType" in {
-    SigHashType.from4Bytes(Int32.one.bytes) must be(SigHashType.decode(Int32.one))
-    SigHashType.from4Bytes(Int32(5).bytes) must be(SigHashType.decode(Int32(5)))
+    SigHashType.from4Bytes(UInt32.one.bytes) must be(SigHashType.decode(UInt32.one))
+    SigHashType.from4Bytes(UInt32(5).bytes) must be(SigHashType.decode(UInt32(5)))
 
-    SigHashType(BaseHashType.NONE, HashType.FORKID) must be(SigHashType.decode(Int32(0x42.toByte)))
-    SigHashType(BaseHashType.NONE, HashType.FORKID, HashType.ANYONE_CANPAY) must be(SigHashType.decode(Int32(0xc2.toByte)))
-    SigHashType(BaseHashType.ALL, HashType.ANYONE_CANPAY) must be(SigHashType.decode(Int32(0x81.toByte)))
+    SigHashType(BaseHashType.NONE, HashType.FORKID) must be(SigHashType.decode(UInt32(0x42)))
+    SigHashType(BaseHashType.NONE, HashType.FORKID, HashType.ANYONE_CANPAY) must be(SigHashType.decode(UInt32(0xc2)))
+    SigHashType(BaseHashType.ALL, HashType.ANYONE_CANPAY) must be(SigHashType.decode(UInt32(0x81)))
   }
 
   it must "find a hashtype with only an integer" in {
-    SigHashType.decode(Int32(105512910)) has (HashType.ANYONE_CANPAY) must be(true)
+    SigHashType.decode(UInt32(105512910)) has (HashType.ANYONE_CANPAY) must be(true)
   }
 
   it must "return the correct byte for a given hashtype" in {
@@ -108,20 +108,20 @@ class SigHashTypeTest extends FlatSpec with MustMatchers {
   }
 
   it must "find each specific hashType from Byte of default value" in {
-    SigHashType(0x01.toByte) must be(SigHashType(BaseHashType.ALL))
-    SigHashType(0x02.toByte) must be(SigHashType(BaseHashType.NONE))
-    SigHashType(0x03.toByte) must be(SigHashType(BaseHashType.SINGLE))
-    SigHashType(0x80.toByte) must be(SigHashType.ANYONECANPAY)
-    SigHashType(0x81.toByte) must be(SigHashType(BaseHashType.ALL, HashType.ANYONE_CANPAY))
-    SigHashType(0x82.toByte) must be(SigHashType(BaseHashType.NONE, HashType.ANYONE_CANPAY))
-    SigHashType(0x83.toByte) must be(SigHashType(BaseHashType.SINGLE, HashType.ANYONE_CANPAY))
+    SigHashType.fromByte(0x01.toByte) must be(SigHashType(BaseHashType.ALL))
+    SigHashType.fromByte(0x02.toByte) must be(SigHashType(BaseHashType.NONE))
+    SigHashType.fromByte(0x03.toByte) must be(SigHashType(BaseHashType.SINGLE))
+    SigHashType.fromByte(0x80.toByte) must be(SigHashType.ANYONECANPAY)
+    SigHashType.fromByte(0x81.toByte) must be(SigHashType(BaseHashType.ALL, HashType.ANYONE_CANPAY))
+    SigHashType.fromByte(0x82.toByte) must be(SigHashType(BaseHashType.NONE, HashType.ANYONE_CANPAY))
+    SigHashType.fromByte(0x83.toByte) must be(SigHashType(BaseHashType.SINGLE, HashType.ANYONE_CANPAY))
 
-    SigHashType(0x41.toByte) must be(SigHashType.bchALL)
-    SigHashType(0x42.toByte) must be(SigHashType.bchNONE)
-    SigHashType(0x43.toByte) must be(SigHashType.bchSINGLE)
-    SigHashType(0x40.toByte) must be(SigHashType.FORKID)
-    SigHashType(0xc1.toByte) must be(SigHashType(BaseHashType.ALL, HashType.ANYONE_CANPAY, HashType.FORKID))
-    SigHashType(0xc2.toByte) must be(SigHashType(BaseHashType.NONE, HashType.ANYONE_CANPAY, HashType.FORKID))
-    SigHashType(0xc3.toByte) must be(SigHashType(BaseHashType.SINGLE, HashType.ANYONE_CANPAY, HashType.FORKID))
+    SigHashType.fromByte(0x41.toByte) must be(SigHashType.bchALL)
+    SigHashType.fromByte(0x42.toByte) must be(SigHashType.bchNONE)
+    SigHashType.fromByte(0x43.toByte) must be(SigHashType.bchSINGLE)
+    SigHashType.fromByte(0x40.toByte) must be(SigHashType.FORKID)
+    SigHashType.fromByte(0xc1.toByte) must be(SigHashType(BaseHashType.ALL, HashType.ANYONE_CANPAY, HashType.FORKID))
+    SigHashType.fromByte(0xc2.toByte) must be(SigHashType(BaseHashType.NONE, HashType.ANYONE_CANPAY, HashType.FORKID))
+    SigHashType.fromByte(0xc3.toByte) must be(SigHashType(BaseHashType.SINGLE, HashType.ANYONE_CANPAY, HashType.FORKID))
   }
 }

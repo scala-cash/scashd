@@ -1,7 +1,7 @@
 package org.scash.core.protocol.script.testprotocol
 
 import org.scash.core.crypto.DoubleSha256Digest
-import org.scash.core.number.{ Int32, UInt32 }
+import org.scash.core.number.UInt32
 import org.scash.core.protocol.script.ScriptPubKey
 import org.scash.core.protocol.transaction.Transaction
 import org.scash.core.script.crypto.SigHashType
@@ -23,8 +23,7 @@ object HashTestCaseProtocol extends DefaultJsonProtocol {
       val rawScript = ScriptParser.fromHex(elements.apply(1).convertTo[String])
       val script = ScriptPubKey(rawScript)
       val inputIndex = UInt32(elements(2).convertTo[Int])
-      val hashTypeNum = Int32(elements(3).convertTo[Int])
-      val hashType = SigHashType.decode(hashTypeNum)
+      val hashType = SigHashType.fromInt(elements(3).convertTo[Int])
       val regularSigHash = DoubleSha256Digest(elements(4).convertTo[String])
       val noForkKidSigHash = DoubleSha256Digest(elements(5).convertTo[String])
       val replayProtectedSigHash = DoubleSha256Digest(elements(6).convertTo[String])
@@ -33,7 +32,6 @@ object HashTestCaseProtocol extends DefaultJsonProtocol {
         transaction,
         script,
         inputIndex,
-        hashTypeNum,
         hashType,
         regularSigHash,
         noForkKidSigHash,
@@ -54,15 +52,13 @@ object HashTestCaseProtocol extends DefaultJsonProtocol {
       val rawScript = ScriptParser.fromHex(elements.apply(1).convertTo[String])
       val script = ScriptPubKey(rawScript)
       val inputIndex = UInt32(elements(2).convertTo[Int])
-      val hashTypeNum = Int32(elements(3).convertTo[Int])
-      val hashType = SigHashType.decode(hashTypeNum)
+      val hashType = SigHashType.fromInt(elements(3).convertTo[Int])
       val sigHash = DoubleSha256Digest(elements(4).convertTo[String])
 
       LegacySignatureHashTestCase(
         transaction,
         script,
         inputIndex,
-        hashTypeNum,
         hashType,
         sigHash)
     }
