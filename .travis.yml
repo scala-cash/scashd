@@ -20,9 +20,9 @@ before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
 
 before_install:
-  - wget https://download.bitcoinabc.org/0.18.2/linux/bitcoin-abc-0.18.2-x86_64-linux-gnu.tar.gz
-  - tar -xzf bitcoin-abc-0.18.2-x86_64-linux-gnu.tar.gz
-  - cd bitcoin-abc-0.18.2/bin
+  - wget https://download.bitcoinabc.org/0.18.2/linux/bitcoin-abc-0.18.7-x86_64-linux-gnu.tar.gz
+  - tar -xzf bitcoin-abc-0.18.7-x86_64-linux-gnu.tar.gz
+  - cd bitcoin-abc-0.18.7/bin
   - export PATH=$PATH:$(pwd)
   - cd ../..
 
