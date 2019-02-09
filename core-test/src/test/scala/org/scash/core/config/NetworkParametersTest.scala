@@ -1,6 +1,5 @@
 package org.scash.core.config
 
-import org.scash.core.util.BitcoinSUtil
 import org.scalatest.{ FlatSpec, MustMatchers }
 
 /**

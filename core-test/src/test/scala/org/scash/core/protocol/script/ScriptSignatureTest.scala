@@ -129,7 +129,7 @@ class ScriptSignatureTest extends FlatSpec with MustMatchers {
         test.inputIndex,
         output,
         List(ScriptEnableReplayProtection, ScriptEnableSigHashForkId))
-      
+
       Vector(regTx, oldTx, repTx)
         .map(TransactionSignatureSerializer.hashForSignature(_, test.hashType))
         .zip(List(test.regularSigHash.hex, test.noForkKidSigHash.hex, test.replayProtectedSigHash.hex)

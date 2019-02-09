@@ -45,7 +45,7 @@ trait TxSigCheck extends BitcoinSLogger {
     flags: Seq[ScriptFlag]): ScriptError \/ Boolean = {
     val sigsRemovedScript = BitcoinScriptUtil.calculateScriptForChecking(txSig, sig, nonSepScript)
     val hashTypeByte = sig.bytes.lastOption.getOrElse(0x00.toByte)
-    val hashType = HashType(ByteVector(0.toByte, 0.toByte, 0.toByte, hashTypeByte))
+    val hashType = SigHashType.fromByte(hashTypeByte)
     val spk = ScriptPubKey.fromAsm(sigsRemovedScript)
     val txSComp = TxSigComponent(txSig.transaction, txSig.inputIndex, TransactionOutput(txSig.output.value, spk), txSig.flags)
     val hashForSignature = TransactionSignatureSerializer.hashForSignature(txSComp, hashType)

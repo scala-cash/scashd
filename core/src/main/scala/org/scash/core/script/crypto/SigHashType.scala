@@ -55,21 +55,14 @@ object SigHashType {
   val bchSINGLE = SigHashType(BaseHashType.SINGLE, HashType.FORKID)
   val bchNONE = SigHashType(BaseHashType.NONE, HashType.FORKID)
   val bchALL = SigHashType(BaseHashType.ALL, HashType.FORKID)
-  val bchANYONECANPAY = SigHashType(BaseHashType.ZERO, HashType.FORKID, HashType.ANYONE_CANPAY)
-
-  val ANYONECANPAY = SigHashType(BaseHashType.ZERO, HashType.ANYONE_CANPAY)
-  val FORKID = SigHashType(BaseHashType.ZERO, HashType.FORKID)
 
   val bchHashTypes = List(
-    //  FORKID,
     bchSINGLE,
     bchNONE,
-    bchALL)
-  //  ANYONECANPAY)
-  // bchANYONECANPAY)
-  // SigHashType(BaseHashType.SINGLE, HashType.FORKID, HashType.ANYONE_CANPAY),
-  // SigHashType(BaseHashType.NONE, HashType.FORKID, HashType.ANYONE_CANPAY),
-  //  SigHashType(BaseHashType.ALL, HashType.FORKID, HashType.ANYONE_CANPAY))
+    bchALL,
+    SigHashType(BaseHashType.SINGLE, HashType.FORKID, HashType.ANYONE_CANPAY),
+    SigHashType(BaseHashType.NONE, HashType.FORKID, HashType.ANYONE_CANPAY),
+    SigHashType(BaseHashType.ALL, HashType.FORKID, HashType.ANYONE_CANPAY))
 
   def decode(b: UInt32): SigHashType = from4Bytes(b.bytes)
 

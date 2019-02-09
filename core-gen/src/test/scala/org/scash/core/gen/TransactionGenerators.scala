@@ -115,8 +115,7 @@ trait TransactionGenerators extends BitcoinSLogger {
     (creditingTx, outputIndex) = buildCreditingTransaction(scriptPubKey)
     (signedTx, inputIndex) = buildSpendingTransaction(creditingTx, signedScriptSig, outputIndex)
     output = creditingTx.outputs(outputIndex.toInt)
-    signedTxSignatureComponent = TxSigComponent(signedTx, inputIndex,
-      output, Policy.standardScriptVerifyFlags)
+    signedTxSignatureComponent = TxSigComponent(signedTx, inputIndex, output, Policy.standardScriptVerifyFlags)
   } yield (signedTxSignatureComponent, privateKey)
 
   /**

@@ -1,6 +1,5 @@
 package org.scash.core.protocol
 
-import org.scash.core.util.{ BitcoinSLogger, TestUtil }
 import org.scalatest.{ FlatSpec, MustMatchers }
 
 /**

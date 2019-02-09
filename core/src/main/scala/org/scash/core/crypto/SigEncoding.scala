@@ -4,13 +4,12 @@ package org.scash.core.crypto
  *   Copyright (c) 2018-2019 The SCash Developers (MIT License)
  */
 
-import org.scash.core.number.Int32
 import org.scash.core.script
-import org.scash.core.script.crypto.HashType
+import org.scash.core.script.crypto.{ SigHashType, HashType }
 import org.scash.core.script.flag._
 import org.scash.core.script.result._
 import org.scash.core.util.BitcoinSLogger
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{ \/, \/- }
 import scodec.bits.ByteVector
 
 object SigEncoding {
@@ -154,8 +153,8 @@ object SigEncoding {
       ec <- if (ScriptFlagUtil.requireStrictEncoding(flags)) {
         val f = script.to(sig) _
         for {
-          _ <- f(ScriptErrorSigHashType, !HashType.isDefinedHashtypeSignature(sig))
-          useForkId = HashType.hasForkId(sig)
+          _ <- f(ScriptErrorSigHashType, !(SigHashType.isDefined(sig)))
+          useForkId = SigHashType.fromByte(sig.bytes.last).has(HashType.FORKID)
           forkIdEnabled = ScriptFlagUtil.sighashForkIdEnabled(flags)
           _ <- f(ScriptErrorIllegalForkId, !forkIdEnabled && useForkId)
           _ <- f(ScriptErrorMustUseForkId, forkIdEnabled && !useForkId)
