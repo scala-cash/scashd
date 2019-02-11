@@ -4,7 +4,7 @@ import org.scash.core.protocol.transaction._
 import org.scash.core.script.constant.ScriptToken
 import org.scash.core.script.crypto._
 import org.scash.core.util.{ BitcoinSLogger, BitcoinSUtil, BitcoinScriptUtil, CryptoUtil }
-import org.scash.core.number.{ Int32, UInt32 }
+import org.scash.core.number.UInt32
 import org.scash.core.protocol.CompactSizeUInt
 import org.scash.core.protocol.script.{ NonStandardScriptSignature, ScriptSignature }
 import org.scash.core.script.crypto.SigHashType

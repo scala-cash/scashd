@@ -4,15 +4,17 @@ import java.math.BigInteger
 import java.security.SecureRandom
 
 import org.bitcoin.NativeSecp256k1
-import org.scash.core.util._
+
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair
-import org.bouncycastle.crypto.digests.SHA256Digest
 import org.bouncycastle.crypto.generators.ECKeyPairGenerator
 import org.bouncycastle.crypto.params.{ ECKeyGenerationParameters, ECPrivateKeyParameters, ECPublicKeyParameters }
-import org.bouncycastle.crypto.signers.{ ECDSASigner, HMacDSAKCalculator }
+import org.bouncycastle.crypto.signers.ECDSASigner
+
 import org.scash.core.config.{ NetworkParameters, Networks }
 import org.scash.core.protocol.NetworkElement
 import org.scash.core.util.Factory
+import org.scash.core.util._
+
 import scodec.bits.ByteVector
 
 import scala.annotation.tailrec
@@ -48,24 +50,6 @@ sealed abstract class BaseECKey extends NetworkElement with Sign {
   def sign(hash: HashDigest): ECDigitalSignature = sign(hash, this)
 
   def signFuture(hash: HashDigest)(implicit ec: ExecutionContext): Future[ECDigitalSignature] = Future(sign(hash))
-
-  @deprecated("Deprecated in favor of signing algorithm inside of secp256k1", "2/20/2017")
-  private def oldSign(dataToSign: ByteVector, signingKey: BaseECKey): ECDigitalSignature = {
-    val signer: ECDSASigner = new ECDSASigner(new HMacDSAKCalculator(new SHA256Digest()))
-    val privKey: ECPrivateKeyParameters = new ECPrivateKeyParameters(
-      new BigInteger(1, signingKey.bytes.toArray), CryptoParams.curve)
-    signer.init(true, privKey)
-    val components: Array[BigInteger] = signer.generateSignature(dataToSign.toArray)
-    val (r, s) = (components(0), components(1))
-    val signature = ECDigitalSignature(r, s)
-    //make sure the signature follows BIP62's low-s value
-    //https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki#Low_S_values_in_signatures
-    //bitcoinj implementation
-    //https://github.com/bitcoinj/bitcoinj/blob/1e66b9a8e38d9ad425507bf5f34d64c5d3d23bb8/core/src/main/java/org/bitcoinj/core/ECKey.java#L551
-    val signatureLowS = DERSignatureUtil.lowS(signature)
-    require(signatureLowS.isDEREncoded, "We must create DER encoded signatures when signing a piece of data, got: " + signatureLowS)
-    signatureLowS
-  }
 
 }
 

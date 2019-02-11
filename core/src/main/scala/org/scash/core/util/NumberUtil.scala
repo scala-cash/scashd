@@ -11,13 +11,7 @@ import scala.util.{ Failure, Success, Try }
 /**
  * Created by chris on 2/8/16.
  */
-trait NumberUtil extends BitcoinSLogger {
-
-  private def parseLong(hex: String): Long = java.lang.Long.parseLong(hex, 16)
-
-  private def parseLong(bytes: ByteVector): Long = parseLong(BitcoinSUtil.encodeHex(bytes))
-
-  private def parseLong(byte: Byte): Long = parseLong(ByteVector.fromByte(byte))
+object NumberUtil {
 
   /** Takes 2^^num. */
   def pow2(exponent: Int): BigInt = {
@@ -105,5 +99,3 @@ trait NumberUtil extends BitcoinSLogger {
     convertUInt8s(UInt8.toUInt8s(data), from, to, pad)
   }
 }
-
-object NumberUtil extends NumberUtil

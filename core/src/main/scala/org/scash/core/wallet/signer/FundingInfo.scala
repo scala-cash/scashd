@@ -2,12 +2,11 @@ package org.scash.core.wallet.signer
 
 import org.scash.core.protocol.transaction.{ BaseTransaction, Transaction }
 import org.scash.core.wallet.utxo.{ BitcoinUTXOSpendingInfo, UTXOSpendingInfo }
-import org.scash.core.config.NetworkParameters
 
 /**
  * This meant to represent the class used to 'fund' an
  * unsigned [[Transaction]].
- * This is useful for when we have multiple [[NetworkParameters]]
+ * This is useful for when we have multiple NetworkParameters
  * that each have their own transaction type. I.e. we should only be able to have
  * BitcoinTransactions paired with [[BitcoinUTXOSpendingInfo]], the same would apply for litecoin etc.
  */

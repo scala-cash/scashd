@@ -1,13 +1,10 @@
 package org.scash.core.wallet
 
-import org.scash.core.util.BitcoinSLogger
-
 /**
  * Created by chris on 5/9/17.
  */
 sealed abstract class EscrowTimeoutHelper {
 
-  private val logger = BitcoinSLogger.logger
   /*
   /**
    * Signs a [[org.scash.core.protocol.transaction.BaseTransaction]] with the given private key

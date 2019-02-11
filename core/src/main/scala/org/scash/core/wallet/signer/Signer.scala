@@ -7,7 +7,7 @@ import org.scash.core.wallet.builder.TxBuilderError
 import org.scash.core.crypto._
 import org.scash.core.number.UInt32
 import org.scash.core.policy.Policy
-import org.scash.core.util.BitcoinSLogger
+
 import scodec.bits.ByteVector
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -115,7 +115,6 @@ sealed abstract class P2PKHSigner extends BitcoinSigner {
       val pubKey = signers.head.publicKey
       val unsignedInput = unsignedTx.inputs(inputIndex.toInt)
       val flags = Policy.standardFlags
-      val amount = output.value
       val signed: Future[TxSigComponent] = spk match {
         case p2pkh: P2PKHScriptPubKey =>
           if (p2pkh != P2PKHScriptPubKey(pubKey)) {
@@ -174,7 +173,6 @@ sealed abstract class P2PKHSigner extends BitcoinSigner {
 object P2PKHSigner extends P2PKHSigner
 
 sealed abstract class MultiSigSigner extends BitcoinSigner {
-  private val logger = BitcoinSLogger.logger
 
   override def sign(signersWithPubKeys: Seq[Sign], output: TransactionOutput, unsignedTx: Transaction,
     inputIndex: UInt32, hashType: SigHashType, isDummySignature: Boolean)(implicit ec: ExecutionContext): Future[TxSigComponent] = {
@@ -182,7 +180,6 @@ sealed abstract class MultiSigSigner extends BitcoinSigner {
     val signers = signersWithPubKeys.map(_.signFunction)
     val unsignedInput = unsignedTx.inputs(inputIndex.toInt)
     val flags = Policy.standardFlags
-    val amount = output.value
     val signed: Future[TxSigComponent] = spk match {
       case multiSigSPK: MultiSignatureScriptPubKey =>
         val requiredSigs = multiSigSPK.requiredSigs

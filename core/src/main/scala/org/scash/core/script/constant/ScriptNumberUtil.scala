@@ -4,7 +4,7 @@ package org.scash.core.script.constant
  *   Copyright (c) 2018 Flores Lorca (MIT License)
  *   https://github.com/scala-cash/scash
  */
-import org.scash.core.util.{ BitcoinSUtil, BitcoinScriptUtil }
+import org.scash.core.util.BitcoinSUtil
 import scodec.bits.ByteVector
 
 /**
@@ -157,8 +157,6 @@ trait ScriptNumberUtil {
   }
 
   def firstByteAllZeros(hex: String): Boolean = firstByteAllZeros(BitcoinSUtil.decodeHex(hex))
-
-  private def parseLong(byte: Byte): Long = parseLong(ByteVector.fromByte(byte))
 
 }
 

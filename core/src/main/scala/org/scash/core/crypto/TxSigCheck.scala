@@ -8,14 +8,13 @@ import org.scash.core.script.constant.ScriptToken
 import org.scash.core.script.crypto._
 import org.scash.core.script.flag.{ ScriptFlag, ScriptVerifyNullFail }
 import org.scash.core.util.{ BitcoinSLogger, BitcoinScriptUtil }
-import org.scash.core.{ crypto, script }
+import org.scash.core.script
 import org.scash.core.protocol.script.ScriptPubKey
 import org.scash.core.protocol.transaction.TransactionOutput
 import org.scash.core.script.result.{ ScriptError, ScriptErrorInvalidStackOperation, ScriptErrorSigNullFail }
 import scalaz.{ -\/, \/, \/- }
 import scalaz.std.list._
 import scalaz.syntax.applicative._
-import scodec.bits.ByteVector
 
 import scala.annotation.tailrec
 
@@ -49,8 +48,8 @@ trait TxSigCheck extends BitcoinSLogger {
     val spk = ScriptPubKey.fromAsm(sigsRemovedScript)
     val txSComp = TxSigComponent(txSig.transaction, txSig.inputIndex, TransactionOutput(txSig.output.value, spk), txSig.flags)
     val hashForSignature = TransactionSignatureSerializer.hashForSignature(txSComp, hashType)
-
-    val success = pubKey.verify(hashForSignature, stripHashType(sig))
+    val stripHashByte = ECDigitalSignature(sig.bytes.init)
+    val success = pubKey.verify(hashForSignature, stripHashByte)
 
     nullFailCheck(sig.point[List], flags, success)
   }
@@ -107,9 +106,6 @@ trait TxSigCheck extends BitcoinSLogger {
   private def nullFailCheck(sigs: List[ECDigitalSignature], flags: Seq[ScriptFlag], isValid: Boolean): ScriptError \/ Boolean =
     script.checkFlag(flags)(ScriptVerifyNullFail, ScriptErrorSigNullFail, !isValid && sigs.exists(_.bytes.nonEmpty))
       .map(_ => isValid)
-
-  /** Removes the hash type from the [[crypto.ECDigitalSignature]] */
-  private def stripHashType(sig: ECDigitalSignature) = ECDigitalSignature(sig.bytes.init)
 }
 
 object TxSigCheck extends TxSigCheck

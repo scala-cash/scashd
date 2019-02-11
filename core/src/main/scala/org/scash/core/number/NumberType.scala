@@ -75,7 +75,7 @@ sealed abstract class Number[T <: Number[T]] extends NetworkElement {
     if (num.toBigInt >= Int.MaxValue || num.toBigInt <= Int.MinValue) {
       Failure(new IllegalArgumentException("Num was not in range of int, got: " + num))
     } else {
-      Success(Unit)
+      Success(())
     }
   }
 

@@ -1,8 +1,5 @@
 package org.scash.core.wallet.builder
 
-import org.scash.core.crypto.Sign
-import org.scash.core.policy.Policy
-
 import scala.util.Failure
 
 /**
@@ -19,7 +16,7 @@ object TxBuilderError {
    */
   val FailedUserInvariants = Failure(new IllegalArgumentException("This tx fails the invariants function you passed in"))
   /**
-   * Means that we gave too many [[org.scash.core.wallet.signer.Signer.Sign]] for the TxBuilder
+   * Means that we gave too many Signers for the TxBuilder
    * to use during the signing process for a utxo.
    * An example of this occurring is if we gave 2 private keys to sign a p2pkh spk.
    * A p2pkh only requires one private key to sign the utxo.
@@ -66,7 +63,7 @@ object TxBuilderError {
 
   /**
    * Means that the script we are signing for requires a public key, but we did not pass one in
-   * as a parameter inside of [[Sign]]
+   * as a parameter inside of Sign
    */
   val MissingPublicKey = Failure(new IllegalArgumentException("You did not pass in a public key to sign a P2PKHScriptPubKey with"))
 
@@ -100,7 +97,7 @@ object TxBuilderError {
    */
   val IncompatibleLockTimes = Failure(new IllegalArgumentException("Means you tried to spend an output that requires a lock by blockheight, and another output that requires a lock by timestamp"))
 
-  /** Means we have a output on this transaction below [[Policy.dustThreshold]] */
+  /** Means we have a output on this transaction below dustThreshold */
   val OutputBelowDustThreshold = Failure(new IllegalArgumentException("The p2p network discourages outputs below the dustThreshold, this tx won't be relayed"))
 
   val UnknownError = Failure(new IllegalArgumentException)

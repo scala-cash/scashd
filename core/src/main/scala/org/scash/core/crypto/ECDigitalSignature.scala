@@ -1,12 +1,11 @@
 package org.scash.core.crypto
 
-import org.scash.core.util.{ BitcoinSLogger, BitcoinSUtil, Factory }
+import org.scash.core.util.{ BitcoinSUtil, Factory }
 import scodec.bits.ByteVector
 /**
  * Created by chris on 2/26/16.
  */
 sealed abstract class ECDigitalSignature {
-  private val logger = BitcoinSLogger.logger
 
   def hex: String = BitcoinSUtil.encodeHex(bytes)
 
@@ -90,12 +89,10 @@ object ECDigitalSignature extends Factory[ECDigitalSignature] {
   def fromRS(r: BigInt, s: BigInt): ECDigitalSignature = {
     val rsSize = r.toByteArray.size + s.toByteArray.size
     val totalSize = 4 + rsSize
-    val bytes: ByteVector = {
-      ByteVector(Array(0x30.toByte, totalSize.toByte, 0x2.toByte, r.toByteArray.size.toByte))
-        .++(ByteVector(r.toByteArray))
-        .++(ByteVector(Array(0x2.toByte, s.toByteArray.size.toByte)))
-        .++(ByteVector(s.toByteArray))
-    }
+    val bytes = ByteVector(Array(0x30.toByte, totalSize.toByte, 0x2.toByte, r.toByteArray.size.toByte)) ++
+      ByteVector(r.toByteArray) ++
+      ByteVector(Array(0x2.toByte, s.toByteArray.size.toByte)) ++
+      ByteVector(s.toByteArray)
 
     fromBytes(bytes)
   }

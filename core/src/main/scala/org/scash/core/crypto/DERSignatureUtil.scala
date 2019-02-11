@@ -2,6 +2,7 @@ package org.scash.core.crypto
 
 import org.scash.core.util.{ BitcoinSLogger, BitcoinSUtil }
 import org.bouncycastle.asn1.{ ASN1InputStream, ASN1Integer, DLSequence }
+import scalaz.\/
 import scodec.bits.ByteVector
 
 import scala.util.{ Failure, Success, Try }
@@ -32,23 +33,19 @@ sealed abstract class DERSignatureUtil {
     else if (bytes.nonEmpty) {
       //first byte must be 0x30
       val firstByteIs0x30 = bytes.head == 0x30
-      //second byte must indicate the length of the remaining byte array
-      val signatureSize = bytes(1).toLong
       //checks to see if the signature length is the same as the signatureSize val
-      val signatureLengthIsCorrect = signatureSize == bytes.slice(2, bytes.size).size
+      val signatureLengthIsCorrect = bytes(1).toLong == bytes.size - 2
       //third byte must be 0x02
       val thirdByteIs0x02 = bytes(2) == 0x02
       //this is the size of the r value in the signature
       val rSize = bytes(3)
       //r value in the signature
-      val r = bytes.slice(3, rSize + 3)
       //this 0x02 separates the r and s value )in the signature
       val second0x02Exists = bytes(rSize + 4) == 0x02
-      //this is the size of the s value in the signature
-      val sSize = bytes(rSize + 4)
 
-      val s = bytes.slice(rSize + 4 + 1, bytes.size)
-      firstByteIs0x30 && signatureLengthIsCorrect && thirdByteIs0x02 &&
+      firstByteIs0x30 &&
+        signatureLengthIsCorrect &&
+        thirdByteIs0x02 &&
         second0x02Exists
     } else true
   }
@@ -220,16 +217,11 @@ sealed abstract class DERSignatureUtil {
    * @param signature
    * @return if the S value is the low version
    */
-  def isLowS(signature: ByteVector): Boolean = {
-    val result = Try {
-      val (r, s) = decodeSignature(signature)
+  def isLowS(signature: ByteVector): Boolean =
+    \/.fromTryCatchNonFatal {
+      val (_, s) = decodeSignature(signature)
       s.bigInteger.compareTo(CryptoParams.halfCurveOrder) <= 0
-    }
-    result match {
-      case Success(bool) => bool
-      case Failure(_) => false
-    }
-  }
+    }.getOrElse(false)
 
   /** Checks if the given digital signature uses a low s value, if it does not it converts it to a low s value and returns it */
   def lowS(signature: ECDigitalSignature): ECDigitalSignature = {

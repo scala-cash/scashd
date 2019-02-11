@@ -5,7 +5,6 @@ import org.scash.core.protocol.transaction.{ TransactionInput, TransactionOutPoi
 import org.scash.core.serializers.script.RawScriptSignatureParser
 import org.scash.core.number.UInt32
 import org.scash.core.serializers.RawBitcoinSerializer
-import org.scash.core.util.BitcoinSUtil
 import scodec.bits.ByteVector
 
 /**

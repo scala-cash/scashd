@@ -152,7 +152,6 @@ object P2SHAddress extends AddressFactory[P2SHAddress] {
 }
 
 object BitcoinAddress extends AddressFactory[BitcoinAddress] {
-  private val logger = BitcoinSLogger.logger
 
   /** Creates a [[BitcoinAddress]] from the given string value */
   def apply(value: String): Try[BitcoinAddress] = fromString(value)

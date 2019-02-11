@@ -9,7 +9,6 @@ import org.scash.core.script.control.{ ControlOperationsInterpreter, OP_VERIFY }
 import org.scash.core.script.result._
 import org.scash.core.script._
 import org.scash.core.util.BitcoinSLogger
-import org.scash.core.script.bitwise._
 import scodec.bits.ByteVector
 
 sealed abstract class BitwiseInterpreter {

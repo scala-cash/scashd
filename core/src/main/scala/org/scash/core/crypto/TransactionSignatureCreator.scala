@@ -1,7 +1,6 @@
 package org.scash.core.crypto
 
 import org.scash.core.script.crypto.SigHashType
-import org.scash.core.util.BitcoinSLogger
 
 import scodec.bits.ByteVector
 
@@ -11,7 +10,6 @@ import scala.concurrent.{ ExecutionContext, Future }
  * Created by chris on 7/21/16.
  */
 sealed abstract class TransactionSignatureCreator {
-  private val logger = BitcoinSLogger.logger
   /**
    * Creates a signature from a tx signature component
    *

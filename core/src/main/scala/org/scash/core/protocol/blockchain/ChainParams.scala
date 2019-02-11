@@ -6,7 +6,6 @@ import org.scash.core.consensus.Merkle
 import org.scash.core.crypto.DoubleSha256Digest
 import org.scash.core.currency.{ CurrencyUnit, Satoshis }
 import org.scash.core.number.{ Int32, Int64, UInt32 }
-import org.scash.core.policy.Policy
 import org.scash.core.protocol.script.{ ScriptPubKey, ScriptSignature }
 import org.scash.core.protocol.transaction._
 import org.scash.core.script.constant.{ BytesToPushOntoStack, ScriptConstant, ScriptNumber }
@@ -33,8 +32,7 @@ sealed abstract class ChainParams {
   def genesisBlock: Block
 
   /**
-   * Filter transactions that do not match well-defined patterns
-   * inside of [[Policy]].
+   * Filter transactions that do not match well-defined patterns in Policy
    */
   def requireStandardTransaction: Boolean = true
 

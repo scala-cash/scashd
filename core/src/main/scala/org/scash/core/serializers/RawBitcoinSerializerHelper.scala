@@ -2,14 +2,13 @@ package org.scash.core.serializers
 
 import org.scash.core.number.UInt64
 import org.scash.core.protocol.{ CompactSizeUInt, NetworkElement }
-import org.scash.core.util.BitcoinSLogger
+
 import scodec.bits.ByteVector
 
 /**
  * Created by chris on 2/18/16.
  */
-sealed abstract class RawSerializerHelper {
-  private val logger = BitcoinSLogger.logger
+object RawSerializerHelper {
 
   /**
    * Used parse a byte sequence to a Seq[TransactionInput], Seq[TransactionOutput], etc
@@ -41,5 +40,3 @@ sealed abstract class RawSerializerHelper {
     cmpct.bytes ++ serialized
   }
 }
-
-object RawSerializerHelper extends RawSerializerHelper

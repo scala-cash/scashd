@@ -8,11 +8,10 @@ import org.scash.core.consensus.Consensus
 import org.scash.core.crypto._
 import org.scash.core.script
 import org.scash.core.script.constant._
-import org.scash.core.script.control.OP_VERIFY
-import org.scash.core.script.flag.{ ScriptFlagUtil, ScriptVerifyNullDummy }
+import org.scash.core.script.flag.ScriptVerifyNullDummy
 import org.scash.core.script.result._
 import org.scash.core.script._
-import org.scash.core.util.{ BitcoinSLogger, BitcoinScriptUtil, CryptoUtil }
+import org.scash.core.util.{ BitcoinScriptUtil, CryptoUtil }
 
 import scalaz.{ -\/, \/, \/- }
 import scodec.bits.ByteVector
@@ -20,8 +19,6 @@ import scodec.bits.ByteVector
 import scala.annotation.tailrec
 
 sealed abstract class CryptoInterpreter {
-
-  private def logger = BitcoinSLogger.logger
 
   /** The input is hashed twice: first with SHA-256 and then with RIPEMD-160. */
   def opHash160(program: ScriptProgram): ScriptProgram = {
@@ -63,7 +60,7 @@ sealed abstract class CryptoInterpreter {
     checkSig(p).leftMap(ScriptProgram(p, _)).merge
   }
 
-  /** Runs [[OP_CHECKSIG]] with an [[OP_VERIFY]] afterwards. */
+  /** Runs [[OP_CHECKSIG]] with an OP_VERIFY afterwards. */
   def opCheckSigVerify(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_CHECKSIGVERIFY), "Script top must be OP_CHECKSIGVERIFY")
     checkSig(ScriptProgram(program, OP_CHECKSIG :: program.script.tail, ScriptProgram.Script))
@@ -93,7 +90,7 @@ sealed abstract class CryptoInterpreter {
     multiCheckSig(program).leftMap(ScriptProgram(program, _)).merge
   }
 
-  /** Runs [[OP_CHECKMULTISIG]] with an [[OP_VERIFY]] afterwards */
+  /** Runs [[OP_CHECKMULTISIG]] with an OP_VERIFY afterwards */
   def opCheckMultiSigVerify(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_CHECKMULTISIGVERIFY), "Script top must be OP_CHECKMULTISIGVERIFY")
     (for {

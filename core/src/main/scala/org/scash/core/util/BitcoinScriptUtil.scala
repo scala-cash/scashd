@@ -355,13 +355,6 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
     r
   }
 
-  private def parseScriptEither(scriptEither: Either[(Seq[ScriptToken], ScriptPubKey), ScriptError]): Seq[ScriptToken] = scriptEither match {
-    case Left((_, scriptPubKey)) =>
-      logger.debug("Script pubkey asm inside calculateForSigning: " + scriptPubKey.asm)
-      scriptPubKey.asm
-    case Right(_) => Nil //error
-  }
-
   /**
    * Casts the given script token to a boolean value
    * Mimics this function inside of Bitcoin Core

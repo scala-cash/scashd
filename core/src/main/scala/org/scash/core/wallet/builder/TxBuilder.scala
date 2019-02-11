@@ -1,6 +1,6 @@
 package org.scash.core.wallet.builder
 
-import org.scash.core.config.{ BitcoinNetwork, MainNet, NetworkParameters }
+import org.scash.core.config.{ BitcoinNetwork, NetworkParameters }
 import org.scash.core.currency.{ CurrencyUnit, CurrencyUnits, Satoshis }
 import org.scash.core.number.{ Int64, UInt32 }
 import org.scash.core.policy.Policy
@@ -28,7 +28,6 @@ import scala.util.{ Failure, Success, Try }
  * For usage examples see TxBuilderSpec
  */
 sealed abstract class TxBuilder {
-  private val logger = BitcoinSLogger.logger
 
   /** The outputs which we are spending bitcoins to */
   def destinations: Seq[TransactionOutput]
@@ -71,7 +70,6 @@ sealed abstract class TxBuilder {
 
   /**
    * The network that this [[org.scash.core.wallet.builder.TxBuilder]] is signing a transaction for.
-   * An example could be [[MainNet]]
    */
   def network: NetworkParameters
 
@@ -359,7 +357,6 @@ sealed abstract class BitcoinTxBuilder extends TxBuilder {
 object TxBuilder {
   /** This contains all the information needed to create a valid [[TransactionInput]] that spends this utxo */
   type UTXOMap = Map[TransactionOutPoint, UTXOSpendingInfo]
-  private val logger = BitcoinSLogger.logger
 
   /** Runs various sanity checks on the final version of the signed transaction from TxBuilder */
   def sanityChecks(txBuilder: TxBuilder, signedTx: Transaction): Try[Unit] = {
@@ -391,7 +388,7 @@ object TxBuilder {
     } else if (hasExtraOutPoints) {
       TxBuilderError.ExtraOutPoints
     } else {
-      Success(Unit)
+      Success(())
     }
   }
 
@@ -442,7 +439,7 @@ object TxBuilder {
     } else if (difference >= max) {
       TxBuilderError.LowFee
     } else {
-      Success(Unit)
+      Success(())
     }
   }
 }
@@ -456,8 +453,6 @@ object BitcoinTxBuilder {
     feeRate: FeeUnit,
     changeSPK: ScriptPubKey,
     network: BitcoinNetwork) extends BitcoinTxBuilder
-
-  private val logger = BitcoinSLogger.logger
 
   /**
    * @param destinations where the money is going in the signed tx

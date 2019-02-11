@@ -3,7 +3,6 @@ package org.scash.core.protocol.blockchain
 import org.scash.core.crypto.DoubleSha256Digest
 import org.scash.core.number.UInt32
 import org.scash.core.util.{ BitcoinSLogger, _ }
-import scodec.bits
 import scodec.bits.BitVector
 
 import scala.annotation.tailrec
@@ -107,7 +106,6 @@ sealed trait PartialMerkleTree extends BitcoinSLogger {
 }
 
 object PartialMerkleTree {
-  private val logger = BitcoinSLogger.logger
 
   private case class PartialMerkleTreeImpl(tree: BinaryTree[DoubleSha256Digest], transactionCount: UInt32,
     bits: BitVector, hashes: Seq[DoubleSha256Digest]) extends PartialMerkleTree {
@@ -212,12 +210,12 @@ object PartialMerkleTree {
 
   /**
    * This constructor creates a partial from this given [[BinaryTree]]
-   * You probably don't want to use this constructor, unless you manually constructed [[bits]] and the [[tree]]
+   * You probably don't want to use this constructor, unless you manually constructed bits and the tree
    * by hand
    * @param tree the partial merkle tree -- note this is NOT the full merkle tree
    * @param transactionCount the number of transactions there initially was in the full merkle tree
    * @param bits the path to the matches in the partial merkle tree
-   * @param hashes the hashes used to reconstruct the binary tree according to [[bits]]
+   * @param hashes the hashes used to reconstruct the binary tree according to bits
    */
   def apply(tree: BinaryTree[DoubleSha256Digest], transactionCount: UInt32, bits: BitVector, hashes: Seq[DoubleSha256Digest]): PartialMerkleTree = {
     PartialMerkleTreeImpl(tree, transactionCount, bits, hashes)

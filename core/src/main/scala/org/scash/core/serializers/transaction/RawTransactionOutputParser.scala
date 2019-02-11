@@ -1,12 +1,11 @@
 package org.scash.core.serializers.transaction
 
-import org.scash.core.currency.Satoshis
-import org.scash.core.protocol.CompactSizeUInt
 import org.scash.core.protocol.transaction.TransactionOutput
 import org.scash.core.serializers.script.RawScriptPubKeyParser
 import org.scash.core.serializers.RawSatoshisSerializer
 import org.scash.core.currency.{ CurrencyUnits, Satoshis }
 import org.scash.core.serializers.RawBitcoinSerializer
+
 import scodec.bits.ByteVector
 
 /**
@@ -22,8 +21,8 @@ sealed abstract class RawTransactionOutputParser extends RawBitcoinSerializer[Tr
   }
 
   /**
-   * Reads a single output from the given bytes, note this is different than [[org.scash.core.serializers.transaction.RawTransactionOutputParser.read]]
-   * because it does NOT expect a [[CompactSizeUInt]] to be the first element in the byte array indicating how many outputs we have
+   * Reads a single output from the given bytes, note this is different than RawTransactionOutputParser.read
+   * because it does NOT expect a CompactSizeUInt to be the first element in the byte array indicating how many outputs we have
    */
   override def read(bytes: ByteVector): TransactionOutput = {
     val satoshisBytes = bytes.take(8)
@@ -31,8 +30,7 @@ sealed abstract class RawTransactionOutputParser extends RawBitcoinSerializer[Tr
     //it doesn't include itself towards the size, thats why it is incremented by one
     val scriptPubKeyBytes = bytes.slice(8, bytes.size)
     val scriptPubKey = RawScriptPubKeyParser.read(scriptPubKeyBytes)
-    val parsedOutput = TransactionOutput(satoshis, scriptPubKey)
-    parsedOutput
+    TransactionOutput(satoshis, scriptPubKey)
   }
 
 }

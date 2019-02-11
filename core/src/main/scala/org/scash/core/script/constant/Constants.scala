@@ -1,15 +1,14 @@
 package org.scash.core.script.constant
 
-import org.scash.core.consensus.Consensus
 import org.scash.core.number.Int64
 import org.scash.core.protocol.NetworkElement
 import org.scash.core.script.flag.ScriptFlagUtil
 import org.scash.core.script.result.{ ScriptError, ScriptErrorUnknownError }
 import org.scash.core.util.{ BitcoinSUtil, BitcoinScriptUtil, Factory }
 import org.scash.core.script.{ ScriptOperationFactory, ScriptProgram }
+
 import scalaz.{ -\/, \/, \/- }
 import scodec.bits.ByteVector
-
 import scala.util.{ Failure, Success, Try }
 
 /**

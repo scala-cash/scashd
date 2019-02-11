@@ -4,10 +4,8 @@ import org.scash.core.protocol.CompactSizeUInt
 import org.scash.core.protocol.script._
 import org.scash.core.script.constant.ScriptToken
 import org.scash.core.serializers.RawBitcoinSerializer
-import org.scash.core.util.BitcoinSLogger
-import scodec.bits.ByteVector
 
-import scala.util.Try
+import scodec.bits.ByteVector
 
 /**
  * Created by chris on 1/12/16.

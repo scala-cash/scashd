@@ -6,7 +6,7 @@ import org.scash.core.protocol.CompactSizeUInt
 import org.scash.core.protocol.blockchain.MerkleBlock
 import org.scash.core.serializers.RawBitcoinSerializer
 import org.scash.core.util.BitcoinSUtil
-import org.slf4j.LoggerFactory
+
 import scodec.bits.{ BitVector, ByteVector }
 
 import scala.annotation.tailrec
@@ -16,8 +16,6 @@ import scala.annotation.tailrec
  * [[https://bitcoin.org/en/developer-reference#merkleblock]]
  */
 sealed abstract class RawMerkleBlockSerializer extends RawBitcoinSerializer[MerkleBlock] {
-
-  private val logger = LoggerFactory.getLogger(this.getClass.getSimpleName)
 
   def read(bytes: ByteVector): MerkleBlock = {
     val blockHeader = RawBlockHeaderSerializer.read(bytes.take(80))

@@ -2,7 +2,6 @@ package org.scash.core.script.reserved
 
 import org.scash.core.script.constant.ScriptOperation
 import org.scash.core.script.ScriptOperationFactory
-import org.scash.core.script.locktime.{ OP_CHECKLOCKTIMEVERIFY, OP_CHECKSEQUENCEVERIFY }
 
 /**
  * Created by chris on 1/22/16.
