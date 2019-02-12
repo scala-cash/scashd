@@ -103,6 +103,11 @@ case object ScriptErrorCheckSigVerify extends ScriptError {
   override def description: String = "CHECKSIGVERIFY"
 }
 
+//SCRIPT_ERR_CHECKDATASIGVERIFY,
+case object ScriptErrorCheckDataSigVerify extends ScriptError {
+  override def description: String = "CHECKDATASIGVERIFY"
+}
+
 //SCRIPT_ERR_NUMEQUALVERIFY,
 case object ScriptErrorNumEqualVerify extends ScriptError {
   override def description: String = "NUMEQUALVERIFY"

@@ -40,6 +40,12 @@ trait CryptoUtil {
     Sha256Digest(ByteVector(hash))
   }
 
+  def sha256Opt(bytes: ByteVector): Option[Sha256Digest] = {
+    val hash = MessageDigest.getInstance("SHA-256").digest(bytes.toArray)
+    if (hash.isEmpty) None
+    else Some(Sha256Digest(ByteVector(hash)))
+  }
+
   /** Performs SHA1(bytes). */
   def sha1(bytes: ByteVector): Sha1Digest = {
     val hash = MessageDigest.getInstance("SHA-1").digest(bytes.toArray).toList

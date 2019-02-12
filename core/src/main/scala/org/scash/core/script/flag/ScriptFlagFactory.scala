@@ -11,12 +11,27 @@ trait ScriptFlagFactory {
    * All the [[ScriptFlag]]s found inside of bitcoin cash
    * https://github.com/Bitcoin-ABC/bitcoin-abc/blob/master/src/script/script_flags.h
    */
-  private def flags = Seq(ScriptVerifyNone, ScriptVerifyP2SH, ScriptVerifyStrictEnc,
-    ScriptVerifyDerSig, ScriptVerifyLowS, ScriptVerifySigPushOnly, ScriptVerifyMinimalData,
-    ScriptVerifyNullDummy, ScriptVerifyDiscourageUpgradableNOPs, ScriptVerifyCleanStack,
-    ScriptVerifyCheckLocktimeVerify, ScriptVerifyCheckSequenceVerify,
-    ScriptVerifyMinimalIf, ScriptVerifyNullFail, ScriptVerifyCompressedPubkeytype,
-    ScriptEnableSigHashForkId, ScriptEnableReplayProtection)
+  private def flags = Seq(
+    ScriptVerifyNone,
+    ScriptVerifyP2SH,
+    ScriptVerifyStrictEnc,
+    ScriptVerifyDerSig,
+    ScriptVerifyLowS,
+    ScriptVerifySigPushOnly,
+    ScriptVerifyMinimalData,
+    ScriptVerifyNullDummy,
+    ScriptVerifyDiscourageUpgradableNOPs,
+    ScriptVerifyCleanStack,
+    ScriptVerifyCheckLocktimeVerify,
+    ScriptVerifyCheckSequenceVerify,
+    ScriptVerifyMinimalIf,
+    ScriptVerifyNullFail,
+    ScriptVerifyCompressedPubkeytype,
+    ScriptEnableSigHashForkId,
+    ScriptEnableReplayProtection,
+    ScriptEnableCheckDataSig
+  )
+
 
   /** Takes in a string and tries to match it with a [[ScriptFlag]]. */
   def fromString(str: String): Option[ScriptFlag] = {

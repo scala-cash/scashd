@@ -299,6 +299,8 @@ sealed abstract class ScriptInterpreter {
             case OP_HASH160 :: _ => loop(CryptoInterpreter.opHash160(p), calcOpCount(opCount, OP_HASH160))
             case OP_CHECKSIG :: _ => loop(CryptoInterpreter.opCheckSig(p), calcOpCount(opCount, OP_CHECKSIG))
             case OP_CHECKSIGVERIFY :: _ => loop(CryptoInterpreter.opCheckSigVerify(p), calcOpCount(opCount, OP_CHECKSIGVERIFY))
+            case OP_CHECKDATASIG :: _ => loop(CryptoInterpreter.opCheckDataSig(p), calcOpCount(opCount, OP_CHECKDATASIG))
+            case OP_CHECKDATASIGVERIFY :: _ => loop(CryptoInterpreter.opCheckDataSigVerify(p), calcOpCount(opCount, OP_CHECKDATASIGVERIFY))
             case OP_SHA1 :: _ => loop(CryptoInterpreter.opSha1(p), calcOpCount(opCount, OP_SHA1))
             case OP_RIPEMD160 :: _ => loop(CryptoInterpreter.opRipeMd160(p), calcOpCount(opCount, OP_RIPEMD160))
             case OP_SHA256 :: _ => loop(CryptoInterpreter.opSha256(p), calcOpCount(opCount, OP_SHA256))

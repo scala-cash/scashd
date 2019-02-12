@@ -44,7 +44,9 @@ sealed abstract class Policy {
     ScriptVerifyCleanStack,
     ScriptVerifyCheckLocktimeVerify,
     ScriptVerifyCheckSequenceVerify,
-    ScriptVerifyNullFail)
+    ScriptVerifyNullFail,
+    ScriptEnableCheckDataSig
+  )
 
   /**
    * For convenience, standard but not mandatory verify flags.

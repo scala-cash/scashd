@@ -8,12 +8,14 @@ import org.scash.core.consensus.Consensus
 import org.scash.core.crypto._
 import org.scash.core.script
 import org.scash.core.script.constant._
-import org.scash.core.script.flag.ScriptVerifyNullDummy
+import org.scash.core.script.flag.{ScriptEnableCheckDataSig, ScriptVerifyNullDummy, ScriptVerifyNullFail}
 import org.scash.core.script.result._
 import org.scash.core.script._
-import org.scash.core.util.{ BitcoinScriptUtil, CryptoUtil }
+import org.scash.core.util.{BitcoinScriptUtil, CryptoUtil}
 
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
+import scalaz.syntax.std.option._
+
 import scodec.bits.ByteVector
 
 import scala.annotation.tailrec
@@ -67,6 +69,29 @@ sealed abstract class CryptoInterpreter {
       .flatMap(p => p.stackTopIsTrue match {
         case true => \/-(ScriptProgram(p, p.stack.tail, p.script))
         case false => -\/(ScriptErrorCheckSigVerify)
+      })
+      .leftMap(ScriptProgram(program, _))
+      .merge
+  }
+
+  /**
+    * OP_CHECKDATASIG check whether a signature is valid with respect to a message and a public key.
+    * it permits data to be imported into a script, and have its validity checked against
+    * some signing authority such as an "Oracle".
+    * https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/op_checkdatasig.md
+    */
+  def opCheckDataSig(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_CHECKDATASIG), "Script top must be OP_CHECKDATASIG")
+    checkDataSig(p).leftMap(ScriptProgram(p, _)).merge
+  }
+
+  /** Runs [[OP_CHECKDATASIG]] with an OP_VERIFY afterwards. */
+  def opCheckDataSigVerify(program: ScriptProgram): ScriptProgram = {
+    require(program.script.headOption.contains(OP_CHECKDATASIGVERIFY), "Script top must be OP_CHECKDATASIGVERIFY")
+    checkDataSig(ScriptProgram(program, OP_CHECKDATASIG :: program.script.tail, ScriptProgram.Script))
+      .flatMap(p => p.stackTopIsTrue match {
+        case true => \/-(ScriptProgram(p, p.stack.tail, p.script))
+        case false => -\/(ScriptErrorCheckDataSigVerify)
       })
       .leftMap(ScriptProgram(program, _))
       .merge
@@ -165,6 +190,28 @@ sealed abstract class CryptoInterpreter {
       } yield ScriptProgram(p, opBoolean :: p.stack.drop(2), p.script.tail)
   }
 
+  @tailrec
+  private def checkDataSig(program: ScriptProgram): ScriptError \/ ScriptProgram = program match {
+    case p: PreExecutionScriptProgram => checkDataSig(ScriptProgram.toExecutionInProgress(p))
+    case p: ExecutedScriptProgram => \/-(p)
+    case p: ExecutionInProgressScriptProgram =>
+      if (!p.flags.contains(ScriptEnableCheckDataSig)) -\/(ScriptErrorBadOpCode)
+      else for {
+        s <- getThree(p.stack)
+        pubKey = ECPublicKey(s._1.bytes)
+        msg = s._2
+        sig = ECDigitalSignature(s._3.bytes)
+        _ <- SigEncoding.checkDataSigEncoding(sig, p.flags)
+        _ <- SigEncoding.checkPubKeyEncoding(pubKey, p.flags)
+        success <-
+          if (sig.isEmpty) \/-(OP_FALSE)
+          else for {
+            hash <- CryptoUtil.sha256Opt(msg.bytes).toRightDisjunction(ScriptErrorUnknownError)
+            success <- \/-(pubKey.verify(hash, sig))
+            _ <- checkFlag(p.flags)(ScriptVerifyNullFail, ScriptErrorSigNullFail, !success)
+          } yield if (success) OP_TRUE else OP_FALSE
+      } yield ScriptProgram(p, success :: p.stack.drop(3), p.script.tail)
+  }
   /**
    * This is a higher order function designed to execute a hash function on the stack top of the program
    * For instance, we could pass in CryptoUtil.sha256 function as the 'hashFunction' argument, which would then

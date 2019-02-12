@@ -144,3 +144,8 @@ case object ScriptEnableReplayProtection extends ScriptFlag {
   override def name = "REPLAY_PROTECTION"
 }
 
+/**OP_CHECKDATASIG and variant are enabled SCRIPT_ENABLE_CHECKDATASIG*/
+case object ScriptEnableCheckDataSig extends ScriptFlag {
+  override def flag = 1 << 18
+  override def name = "CHECKDATASIG"
+}
