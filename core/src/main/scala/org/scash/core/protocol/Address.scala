@@ -33,7 +33,7 @@ sealed abstract class P2PKHAddress extends BitcoinAddress {
     val versionByte = networkParameters.p2pkhNetworkByte
     val bytes = versionByte ++ hash.bytes
     val checksum = CryptoUtil.doubleSHA256(bytes).bytes.take(4)
-    Base58.encode(bytes ++ checksum)
+    (bytes ++ checksum).toBase58
   }
 
   override def hash: Sha256Hash160Digest
@@ -48,7 +48,7 @@ sealed abstract class P2SHAddress extends BitcoinAddress {
     val versionByte = networkParameters.p2shNetworkByte
     val bytes = versionByte ++ hash.bytes
     val checksum = CryptoUtil.doubleSHA256(bytes).bytes.take(4)
-    Base58.encode(bytes ++ checksum)
+    (bytes ++ checksum).toBase58
   }
 
   override def scriptPubKey = P2SHScriptPubKey(hash)
@@ -180,10 +180,7 @@ object BitcoinAddress extends AddressFactory[BitcoinAddress] {
 
 object Address extends AddressFactory[Address] {
 
-  def fromBytes(bytes: ByteVector): Try[Address] = {
-    val encoded = Base58.encode(bytes)
-    BitcoinAddress.fromString(encoded)
-  }
+  def fromBytes(bytes: ByteVector): Try[Address] = BitcoinAddress.fromString(bytes.toBase58)
 
   def fromHex(hex: String): Try[Address] = fromBytes(BitcoinSUtil.decodeHex(hex))
 
@@ -191,9 +188,8 @@ object Address extends AddressFactory[Address] {
 
   def apply(str: String): Try[Address] = fromString(str)
 
-  override def fromString(str: String): Try[Address] = {
-    BitcoinAddress.fromString(str)
-  }
+  override def fromString(str: String): Try[Address] = BitcoinAddress.fromString(str)
+
   override def fromScriptPubKey(spk: ScriptPubKey, network: NetworkParameters): Try[Address] =
     BitcoinAddress.fromScriptPubKey(spk, network)
 

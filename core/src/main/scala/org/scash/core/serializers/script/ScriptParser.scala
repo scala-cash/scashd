@@ -50,7 +50,7 @@ sealed abstract class ScriptParser extends Factory[List[ScriptToken]] {
     def loop(operations: List[String], accum: ByteVector): ByteVector = {
       operations match {
         //for parsing strings like 'Az', need to remove single quotes
-        case h +: t if (h.size > 0 && h.head == ''' && h.last == ''') =>
+        case h +: t if (h.size > 0 && h.head == '\'' && h.last == '\'') =>
           val strippedQuotes = h.replace("'", "")
           if (strippedQuotes.size == 0) {
             loop(t, OP_0.bytes ++ accum)

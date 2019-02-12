@@ -6,21 +6,19 @@ import scala.annotation.tailrec
  */
 trait BinaryTree[+T] {
   def value: Option[T] = this match {
-    case n: Node[T] => Some(n.v)
-    case l: Leaf[T] => Some(l.v)
+    case Node(v, _, _) => Some(v)
+    case Leaf(v) => Some(v)
     case Empty => None
   }
 
   def left: Option[BinaryTree[T]] = this match {
-    case n: Node[T] => Some(n.l)
-    case l: Leaf[T] => None
-    case Empty => None
+    case Node(_, l, _) => Some(l)
+    case Leaf(_) | Empty => None
   }
 
   def right: Option[BinaryTree[T]] = this match {
-    case n: Node[T] => Some(n.r)
-    case l: Leaf[T] => None
-    case Empty => None
+    case Node(_, _, r) => Some(r)
+    case Leaf(_) | Empty => None
   }
 
   /**
@@ -54,8 +52,6 @@ trait BinaryTree[+T] {
 
   /** Checks if the [[BinaryTree]] contains a certain element. */
   def contains[T](t: T)(f: T => Boolean = (x: T) => x == t)(implicit tree: BinaryTree[T] = this): Boolean = findFirstDFS(t)(f)(tree).isDefined
-
-  def count[T](t: T)(implicit tree: BinaryTree[T] = this): Int = toSeq.count(_ == t)
 
   /**
    * Inserts an element into one of the two branches in a [[BinaryTree]].

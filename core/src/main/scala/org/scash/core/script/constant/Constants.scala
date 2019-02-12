@@ -130,8 +130,7 @@ object ScriptNumber extends Factory[ScriptNumber] {
     if (underlying == 0) zero else apply(ScriptNumberUtil.longToHex(underlying))
 
   def apply(
-    requireMinimal: Boolean,
-    maxSize: Int = maximumElementSize)(
+    requireMinimal: Boolean)(
     bytes: ByteVector): ScriptError \/ ScriptNumber =
     if (bytes.size > maximumElementSize) {
       logger.error(s"Script number overflow limit: $maximumElementSize size: ${bytes.size}")

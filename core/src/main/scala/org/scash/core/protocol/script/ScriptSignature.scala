@@ -99,8 +99,7 @@ object P2PKHScriptSignature extends ScriptFactory[P2PKHScriptSignature] {
 
   /** Determines if the given asm matches a [[P2PKHScriptSignature]] */
   def isP2PKHScriptSig(asm: Seq[ScriptToken]): Boolean = asm match {
-    case List(w: BytesToPushOntoStack, x: ScriptConstant, y: BytesToPushOntoStack,
-      z: ScriptConstant) =>
+    case (_: BytesToPushOntoStack) :: (_: ScriptConstant) :: (_: BytesToPushOntoStack) :: (z: ScriptConstant) :: Nil =>
       if (ECPublicKey.isFullyValid(z.bytes)) true
       else !P2SHScriptSignature.isRedeemScript(z)
     case _ => false
@@ -126,7 +125,7 @@ sealed trait P2SHScriptSignature extends ScriptSignature {
   def scriptSignatureNoRedeemScript: Try[ScriptSignature] = {
     val asmWithoutRedeemScriptAndPushOp: Try[Seq[ScriptToken]] = Try {
       asm(asm.size - 2) match {
-        case b: BytesToPushOntoStack => asm.dropRight(2)
+        case _: BytesToPushOntoStack => asm.dropRight(2)
         case _ => asm.dropRight(3)
       }
     }
@@ -147,17 +146,6 @@ sealed trait P2SHScriptSignature extends ScriptSignature {
     case Success(nonRedeemScript) =>
       val sigs = nonRedeemScript.asm.filter(_.isInstanceOf[ScriptConstant]).filterNot(_.isInstanceOf[ScriptNumberOperation]).filterNot(_.hex.length < 100)
       sigs.map(s => ECDigitalSignature(s.hex))
-  }
-
-  /**
-   * Splits the given asm into two parts
-   * the first part is the digital signatures
-   * the second part is the redeem script
-   */
-  def splitAtRedeemScript(asm: Seq[ScriptToken]): Try[(Seq[ScriptToken], Seq[ScriptToken])] = {
-    scriptSignatureNoRedeemScript.map { scriptSig =>
-      (scriptSig.asm, redeemScript.asm)
-    }
   }
 
   override def toString = "P2SHScriptSignature(" + hex + ")"
@@ -206,8 +194,7 @@ object P2SHScriptSignature extends ScriptFactory[P2SHScriptSignature] {
   /** Parses a redeem script from the given script token */
   def parseRedeemScript(scriptToken: ScriptToken): Try[ScriptPubKey] = {
     val asm = ScriptParser.fromBytes(scriptToken.bytes)
-    val redeemScript: Try[ScriptPubKey] = Try(ScriptPubKey(asm))
-    redeemScript
+    Try(ScriptPubKey(asm))
   }
 }
 
@@ -258,7 +245,6 @@ object MultiSignatureScriptSignature extends ScriptFactory[MultiSignatureScriptS
    */
   def isMultiSignatureScriptSignature(asm: Seq[ScriptToken]): Boolean = asm.isEmpty match {
     case true => false
-    //case false if (asm.size == 1) => false
     case false =>
       val firstTokenIsScriptNumberOperation = asm.head.isInstanceOf[ScriptNumberOperation]
       val restOfScriptIsPushOpsOrScriptConstants = asm.tail.map(
@@ -302,7 +288,7 @@ object P2PKScriptSignature extends ScriptFactory[P2PKScriptSignature] {
 
   /** P2PK scriptSigs always have the pattern [pushop, digitalSignature] */
   def isP2PKScriptSignature(asm: Seq[ScriptToken]): Boolean = asm match {
-    case List(w: BytesToPushOntoStack, x: ScriptConstant) => true
+    case (_: BytesToPushOntoStack) :: (_: ScriptConstant) :: Nil => true
     case _ => false
   }
 }
@@ -329,9 +315,7 @@ object CLTVScriptSignature extends Factory[CLTVScriptSignature] {
     CLTVScriptSignature(BitcoinSUtil.decodeHex(hex))
   }
 
-  def apply(scriptSig: ScriptSignature): CLTVScriptSignature = {
-    fromHex(scriptSig.hex)
-  }
+  def apply(scriptSig: ScriptSignature): CLTVScriptSignature = fromHex(scriptSig.hex)
 }
 
 sealed trait CSVScriptSignature extends LockTimeScriptSignature {
@@ -349,9 +333,8 @@ object CSVScriptSignature extends Factory[CSVScriptSignature] {
     CSVScriptSignature(BitcoinSUtil.decodeHex(hex))
   }
 
-  def apply(scriptSig: ScriptSignature): CSVScriptSignature = {
-    fromHex(scriptSig.hex)
-  }
+  def apply(scriptSig: ScriptSignature): CSVScriptSignature = fromHex(scriptSig.hex)
+
 }
 
 /** Represents the empty script signature */
@@ -402,9 +385,8 @@ object ScriptSignature extends ScriptFactory[ScriptSignature] {
     case EmptyScriptPubKey => if (tokens.isEmpty) Success(EmptyScriptSignature) else Try(NonStandardScriptSignature.fromAsm(tokens))
   }
 
-  def apply(tokens: Seq[ScriptToken], scriptPubKey: ScriptPubKey): Try[ScriptSignature] = {
-    fromScriptPubKey(tokens, scriptPubKey)
-  }
+  def apply(tokens: Seq[ScriptToken], scriptPubKey: ScriptPubKey): Try[ScriptSignature] = fromScriptPubKey(tokens, scriptPubKey)
+
 }
 
 /**

@@ -23,7 +23,7 @@ sealed abstract class StackInterpreter {
   def opDup(program: ScriptProgram): ScriptProgram = {
     require(program.script.headOption.contains(OP_DUP), "Top of the script stack must be OP_DUP")
     program.stack match {
-      case h :: t => ScriptProgram(program, h :: program.stack, program.script.tail)
+      case h :: _ => ScriptProgram(program, h :: program.stack, program.script.tail)
       case Nil =>
         logger.error("Cannot duplicate the top element on an empty stack")
         ScriptProgram(program, ScriptErrorInvalidStackOperation)
@@ -55,7 +55,7 @@ sealed abstract class StackInterpreter {
     require(program.script.headOption.contains(OP_TOALTSTACK), "Top of script stack must be OP_TOALTSTACK")
     if (program.stack.nonEmpty) {
       ScriptProgram(program, program.stack.tail,
-        program.script.tail, program.stack.head :: program.altStack, ScriptProgram.AltStack)
+        program.script.tail, program.stack.head :: program.altStack)
     } else {
       logger.error("OP_TOALTSTACK requires an element to be on the stack")
       ScriptProgram(program, ScriptErrorInvalidStackOperation)
@@ -63,14 +63,12 @@ sealed abstract class StackInterpreter {
   }
 
   /** Puts the input onto the top of the main stack. Removes it from the alt stack. */
-  def opFromAltStack(program: ScriptProgram): ScriptProgram = {
-    require(program.script.headOption.contains(OP_FROMALTSTACK), "Top of script stack must be OP_FROMALTSTACK")
-    if (program.altStack.nonEmpty) {
-      ScriptProgram(program, program.altStack.head :: program.stack,
-        program.script.tail, program.altStack.tail, ScriptProgram.AltStack)
-    } else {
+  def opFromAltStack(p: ScriptProgram): ScriptProgram = {
+    require(p.script.headOption.contains(OP_FROMALTSTACK), "Top of script stack must be OP_FROMALTSTACK")
+    if (p.altStack.nonEmpty) ScriptProgram(p, p.altStack.head :: p.stack, p.script.tail, p.altStack.tail)
+    else {
       logger.error("Alt Stack must have at least one item on it for OP_FROMALTSTACK")
-      ScriptProgram(program, ScriptErrorInvalidAltStackOperation)
+      ScriptProgram(p, ScriptErrorInvalidAltStackOperation)
     }
   }
 
@@ -90,10 +88,7 @@ sealed abstract class StackInterpreter {
     require(program.script.headOption.contains(OP_NIP), "Top of script stack must be OP_NIP")
     program.stack match {
       case h :: _ :: t => ScriptProgram(program, h :: t, program.script.tail)
-      case h :: t =>
-        logger.error("Stack must have at least two items on it for OP_NIP")
-        ScriptProgram(program, ScriptErrorInvalidStackOperation)
-      case Nil =>
+      case _ :: Nil | Nil =>
         logger.error("Stack must have at least two items on it for OP_NIP")
         ScriptProgram(program, ScriptErrorInvalidStackOperation)
     }
@@ -104,10 +99,7 @@ sealed abstract class StackInterpreter {
     require(program.script.headOption.contains(OP_OVER), "Top of script stack must be OP_OVER")
     program.stack match {
       case _ :: h1 :: _ => ScriptProgram(program, h1 :: program.stack, program.script.tail)
-      case h :: t =>
-        logger.error("Stack must have at least two items on it for OP_OVER")
-        ScriptProgram(program, ScriptErrorInvalidStackOperation)
-      case Nil =>
+      case _ :: Nil | Nil =>
         logger.error("Stack must have at least two items on it for OP_OVER")
         ScriptProgram(program, ScriptErrorInvalidStackOperation)
     }

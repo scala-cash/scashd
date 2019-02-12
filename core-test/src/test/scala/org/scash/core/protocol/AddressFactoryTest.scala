@@ -15,7 +15,7 @@ class AddressFactoryTest extends FlatSpec with MustMatchers {
   }
 
   it must "create an address from a sequence of bytes" in {
-    val decoded = Base58.decode(TestUtil.bitcoinAddress.get.value)
+    val decoded = Base58.fromValidBase58(TestUtil.bitcoinAddress.get.value)
     Address(decoded) must be(TestUtil.bitcoinAddress)
   }
 

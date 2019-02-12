@@ -60,7 +60,7 @@ sealed abstract class ExtKey extends NetworkElement {
 
   override def toString: String = {
     val checksum = CryptoUtil.doubleSHA256(bytes).bytes.take(4)
-    val encoded = Base58.encode(bytes ++ checksum)
+    val encoded = (bytes ++ checksum).toBase58
     require(Base58.decodeCheck(encoded).isSuccess)
     encoded
   }
@@ -146,7 +146,7 @@ object ExtPrivateKey extends Factory[ExtPrivateKey] {
 
   override def fromBytes(bytes: ByteVector): ExtPrivateKey = {
     require(bytes.size == 78, "ExtPrivateKey can only be 78 bytes")
-    val base58 = Base58.encode(bytes ++ CryptoUtil.doubleSHA256(bytes).bytes.take(4))
+    val base58 = (bytes ++ CryptoUtil.doubleSHA256(bytes).bytes.take(4)).toBase58
     ExtKey.fromString(base58) match {
       case Success(priv: ExtPrivateKey) => priv
       case Success(_: ExtPublicKey) => throw new IllegalArgumentException("Cannot create ext public in ExtPrivateKey")
@@ -217,7 +217,7 @@ object ExtPublicKey extends Factory[ExtPublicKey] {
 
   override def fromBytes(bytes: ByteVector): ExtPublicKey = {
     require(bytes.size == 78, "ExtPublicKey can only be 78 bytes")
-    val base58 = Base58.encode(bytes ++ CryptoUtil.doubleSHA256(bytes).bytes.take(4))
+    val base58 = (bytes ++ CryptoUtil.doubleSHA256(bytes).bytes.take(4)).toBase58
     ExtKey.fromString(base58) match {
       case Success(_: ExtPrivateKey) =>
         throw new IllegalArgumentException("Cannot create ext privatkey in ExtPublicKey")

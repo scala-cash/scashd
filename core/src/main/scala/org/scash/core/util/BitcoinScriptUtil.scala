@@ -155,7 +155,7 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
       case size if (size <= 75) => token.bytes.size == pushOp.toLong
       case size if (size <= 255) => pushOp == OP_PUSHDATA1
       case size if (size <= 65535) => pushOp == OP_PUSHDATA2
-      case size =>
+      case _ =>
         //default case is true because we have to use the largest push op as possible which is OP_PUSHDATA4
         true
     }

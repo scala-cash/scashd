@@ -81,7 +81,7 @@ sealed abstract class ECPrivateKey extends BaseECKey {
     val hash = CryptoUtil.doubleSHA256(fullBytes)
     val checksum = hash.bytes.take(4)
     val encodedPrivKey = fullBytes ++ checksum
-    Base58.encode(encodedPrivKey)
+    encodedPrivKey.toBase58
   }
 
   override def toString = "ECPrivateKey(" + hex + "," + isCompressed + ")"
@@ -164,7 +164,7 @@ object ECPrivateKey extends Factory[ECPrivateKey] {
   }
 
   def isCompressed(WIF: String): Boolean = {
-    val bytes = Base58.decode(WIF)
+    val bytes = Base58.fromValidBase58(WIF)
     isCompressed(bytes)
   }
 
@@ -247,10 +247,10 @@ sealed abstract class ECPublicKey extends BaseECKey {
       signer.init(false, publicKeyParams)
       signature match {
         case EmptyDigitalSignature => signer.verifySignature(data.toArray, java.math.BigInteger.valueOf(0), java.math.BigInteger.valueOf(0))
-        case sig: ECDigitalSignature =>
+        case _: ECDigitalSignature =>
           logger.debug("Public key bytes: " + BitcoinSUtil.encodeHex(bytes))
-          val rBigInteger: BigInteger = new BigInteger(signature.r.toString())
-          val sBigInteger: BigInteger = new BigInteger(signature.s.toString())
+          val rBigInteger = new BigInteger(signature.r.toString)
+          val sBigInteger = new BigInteger(signature.s.toString)
           signer.verifySignature(data.toArray, rBigInteger, sBigInteger)
       }
     }

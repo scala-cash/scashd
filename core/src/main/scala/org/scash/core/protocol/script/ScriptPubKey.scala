@@ -1,6 +1,5 @@
 package org.scash.core.protocol.script
 
-import org.scash.core.crypto._
 import org.scash.core.protocol._
 import org.scash.core.script.bitwise.{ OP_EQUAL, OP_EQUALVERIFY }
 import org.scash.core.script.constant.{ BytesToPushOntoStack, _ }
@@ -13,6 +12,7 @@ import org.scash.core.serializers.script.ScriptParser
 import org.scash.core.util._
 import org.scash.core.consensus.Consensus
 import org.scash.core.crypto.{ ECPublicKey, Sha256Hash160Digest }
+
 import scodec.bits.ByteVector
 
 import scala.util.{ Failure, Success, Try }
@@ -75,7 +75,7 @@ object P2PKHScriptPubKey extends ScriptFactory[P2PKHScriptPubKey] {
 
   /** Checks if the given asm matches the pattern for [[P2PKHScriptPubKey]] */
   def isP2PKHScriptPubKey(asm: Seq[ScriptToken]): Boolean = asm match {
-    case List(OP_DUP, OP_HASH160, x: BytesToPushOntoStack, y: ScriptConstant, OP_EQUALVERIFY, OP_CHECKSIG) => true
+    case List(OP_DUP, OP_HASH160, _: BytesToPushOntoStack, _: ScriptConstant, OP_EQUALVERIFY, OP_CHECKSIG) => true
     case _ => false
   }
 }
@@ -92,7 +92,7 @@ sealed trait MultiSignatureScriptPubKey extends ScriptPubKey {
     val asmWithoutPushOps = asm.filterNot(_.isInstanceOf[BytesToPushOntoStack])
     val opCheckMultiSigIndex = if (asm.indexOf(OP_CHECKMULTISIG) != -1) asmWithoutPushOps.indexOf(OP_CHECKMULTISIG) else asmWithoutPushOps.indexOf(OP_CHECKMULTISIGVERIFY)
     //magic number 2 represents the maxSig operation and the OP_CHECKMULTISIG operation at the end of the asm
-    val numSigsRequired = asmWithoutPushOps(opCheckMultiSigIndex - maxSigs.toInt - 2)
+    val numSigsRequired = asmWithoutPushOps(opCheckMultiSigIndex - maxSigs - 2)
     numSigsRequired match {
       case x: ScriptNumber => x.toInt
       case c: ScriptConstant if ScriptNumber(c.hex).toLong <= Consensus.maxPublicKeysPerMultiSig =>
@@ -211,8 +211,7 @@ object MultiSignatureScriptPubKey extends ScriptFactory[MultiSignatureScriptPubK
    */
   private def isValidPubKeyNumber(token: ScriptToken): Boolean = token match {
     case constant: ScriptConstant =>
-      constant.isInstanceOf[ScriptNumber] ||
-        ScriptNumber(constant.bytes) <= ScriptNumber(Consensus.maxPublicKeysPerMultiSig)
+      constant.isInstanceOf[ScriptNumber] || ScriptNumber(constant.bytes) <= ScriptNumber(Consensus.maxPublicKeysPerMultiSig)
     case _: ScriptToken => false
   }
 }
@@ -245,13 +244,12 @@ object P2SHScriptPubKey extends ScriptFactory[P2SHScriptPubKey] {
 
   /** Checks if the given asm matches the pattern for [[P2SHScriptPubKey]] */
   def isP2SHScriptPubKey(asm: Seq[ScriptToken]): Boolean = asm match {
-    case List(OP_HASH160, x: BytesToPushOntoStack, y: ScriptConstant, OP_EQUAL) => true
+    case OP_HASH160 :: (_: BytesToPushOntoStack) :: (_: ScriptConstant) :: OP_EQUAL :: Nil => true
     case _ => false
   }
 
-  def fromAsm(asm: Seq[ScriptToken]): P2SHScriptPubKey = {
+  def fromAsm(asm: Seq[ScriptToken]): P2SHScriptPubKey =
     buildScript(asm, P2SHScriptPubKeyImpl(_), isP2SHScriptPubKey(_), "Given asm was not a p2sh scriptPubkey, got: " + asm)
-  }
 
   def apply(asm: Seq[ScriptToken]): P2SHScriptPubKey = fromAsm(asm)
 }
@@ -285,7 +283,7 @@ object P2PKScriptPubKey extends ScriptFactory[P2PKScriptPubKey] {
 
   /** Sees if the given asm matches the [[P2PKHScriptPubKey]] pattern */
   def isP2PKScriptPubKey(asm: Seq[ScriptToken]): Boolean = asm match {
-    case List(b: BytesToPushOntoStack, x: ScriptConstant, OP_CHECKSIG) => true
+    case List(_: BytesToPushOntoStack, _: ScriptConstant, OP_CHECKSIG) => true
     case _ => false
   }
 
@@ -304,9 +302,9 @@ sealed trait LockTimeScriptPubKey extends ScriptPubKey {
   /** The relative locktime value (i.e. the amount of time the output should remain unspendable) */
   def locktime: ScriptNumber = {
     asm.head match {
-      case scriptNumOp: ScriptNumberOperation => ScriptNumber(scriptNumOp.toLong)
+      case sNum: ScriptNumberOperation => ScriptNumber(sNum.toLong)
       case _: BytesToPushOntoStack => ScriptNumber(asm(1).hex)
-      case x @ (_: ScriptConstant | _: ScriptOperation) => throw new IllegalArgumentException("In a LockTimeScriptPubKey, " +
+      case _: ScriptConstant | _: ScriptOperation => throw new IllegalArgumentException("In a LockTimeScriptPubKey, " +
         "the first asm must be either a ScriptNumberOperation (i.e. OP_5), or the BytesToPushOntoStack for the proceeding ScriptConstant.")
     }
   }
@@ -366,16 +364,15 @@ object CLTVScriptPubKey extends ScriptFactory[CLTVScriptPubKey] {
       val tailTokens = asm.slice(4, asm.length)
       if (P2SHScriptPubKey.isP2SHScriptPubKey(tailTokens) || tailTokens.contains(OP_CHECKLOCKTIMEVERIFY)) return false
       asm.slice(0, 4) match {
-        case List(lockTimeBytesToPush: BytesToPushOntoStack, lockTime: ScriptConstant, OP_CHECKLOCKTIMEVERIFY, OP_DROP) =>
+        case (_: BytesToPushOntoStack) :: (_: ScriptConstant) :: OP_CHECKLOCKTIMEVERIFY :: OP_DROP :: Nil =>
           validScriptAfterLockTime(tailTokens)
         case _ => false
       }
     } else {
       val tailTokens = asm.slice(3, asm.length)
-      if (P2SHScriptPubKey.isP2SHScriptPubKey(tailTokens) || tailTokens.contains(OP_CHECKLOCKTIMEVERIFY)) return false
-      asm.slice(0, 3) match {
-        case List(scriptNumOp: ScriptNumberOperation, OP_CHECKLOCKTIMEVERIFY, OP_DROP) =>
-          validScriptAfterLockTime(tailTokens)
+      if (P2SHScriptPubKey.isP2SHScriptPubKey(tailTokens) || tailTokens.contains(OP_CHECKLOCKTIMEVERIFY)) false
+      else asm.slice(0, 3) match {
+        case (_: ScriptNumberOperation) :: OP_CHECKLOCKTIMEVERIFY :: OP_DROP :: Nil => validScriptAfterLockTime(tailTokens)
         case _ => false
       }
     }
@@ -436,7 +433,7 @@ object CSVScriptPubKey extends ScriptFactory[CSVScriptPubKey] {
       val tailTokens = asm.slice(4, asm.length)
       if (P2SHScriptPubKey.isP2SHScriptPubKey(tailTokens) || tailTokens.contains(OP_CHECKSEQUENCEVERIFY)) return false
       asm.slice(0, 4) match {
-        case List(lockTimeBytesToPush: BytesToPushOntoStack, lockTime: ScriptConstant, OP_CHECKSEQUENCEVERIFY, OP_DROP) =>
+        case (_: BytesToPushOntoStack) :: (_: ScriptConstant) :: OP_CHECKSEQUENCEVERIFY :: OP_DROP :: Nil =>
           CLTVScriptPubKey.validScriptAfterLockTime(tailTokens)
         case _ => false
       }
@@ -444,7 +441,7 @@ object CSVScriptPubKey extends ScriptFactory[CSVScriptPubKey] {
       val tailTokens = asm.slice(3, asm.length)
       if (P2SHScriptPubKey.isP2SHScriptPubKey(tailTokens) || tailTokens.contains(OP_CHECKSEQUENCEVERIFY)) return false
       asm.slice(0, 3) match {
-        case List(numberOp: ScriptNumberOperation, OP_CHECKSEQUENCEVERIFY, OP_DROP) =>
+        case (_: ScriptNumberOperation) :: OP_CHECKSEQUENCEVERIFY :: OP_DROP :: Nil =>
           CLTVScriptPubKey.validScriptAfterLockTime(tailTokens)
         case _ => false
       }
