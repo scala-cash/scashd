@@ -4,14 +4,14 @@ package org.scash.core.util
  *   Copyright (c) 2018 Flores Lorca (MIT License)
  */
 import org.scash.core.consensus.Consensus
-import org.scash.core.crypto.{ ECDigitalSignature, ECPublicKey, TxSigComponent }
+import org.scash.core.crypto.{ECDigitalSignature, ECPublicKey, TxSigComponent}
 import org.scash.core.number.UInt32
 import org.scash.core.protocol.script._
 import org.scash.core.script.constant._
-import org.scash.core.script.crypto.{ OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY }
-import org.scash.core.script.flag.{ ScriptFlag, ScriptFlagUtil }
-import org.scash.core.script.result.{ ScriptError, ScriptErrorPubKeyType }
-import org.scash.core.script.{ ExecutionInProgressScriptProgram, ScriptProgram }
+import org.scash.core.script.crypto._
+import org.scash.core.script.flag.{ScriptFlag, ScriptFlagUtil}
+import org.scash.core.script.result.{ScriptError, ScriptErrorPubKeyType}
+import org.scash.core.script.{ExecutionInProgressScriptProgram, ScriptProgram}
 import scodec.bits.ByteVector
 
 import scala.annotation.tailrec
@@ -56,7 +56,13 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
    * @return the number of signature operations in the script
    */
   def countSigOps(script: Seq[ScriptToken]): Long = {
-    val checkSigCount = script.count(token => token == OP_CHECKSIG || token == OP_CHECKSIGVERIFY)
+    val sigCount = script.count(token =>
+      token == OP_CHECKSIG ||
+      token == OP_CHECKSIGVERIFY ||
+      token == OP_CHECKDATASIG ||
+      token == OP_CHECKDATASIGVERIFY
+    )
+
     val multiSigOps = Seq(OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY)
     val multiSigCount: Long = script.zipWithIndex.map {
       case (token, index) =>
@@ -68,7 +74,7 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
           }
         } else 0
     }.sum
-    checkSigCount + multiSigCount
+    sigCount + multiSigCount
   }
 
   /**

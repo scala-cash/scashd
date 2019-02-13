@@ -1,8 +1,10 @@
 package org.scash.core
 
 import org.scalatest.MustMatchers
-import org.scash.core.script.{ ExecutedScriptProgram, ScriptProgram }
-import org.scash.core.script.constant.{ ScriptConstant, ScriptOperation, ScriptToken }
+import org.scash.core.policy.Policy
+import org.scash.core.script.{ExecutedScriptProgram, ScriptProgram}
+import org.scash.core.script.constant.{ScriptConstant, ScriptOperation, ScriptToken}
+import org.scash.core.script.flag.ScriptFlag
 import org.scash.core.script.result.ScriptError
 import org.scash.core.util.TestUtil
 
@@ -19,12 +21,26 @@ trait TestHelpers extends MustMatchers {
     p.script.isEmpty must be(true)
   }
 
+  def checkPass(
+    op: ScriptOperation,
+    interpreter: ScriptProgram => ScriptProgram
+  )(
+    stack: List[ScriptToken],
+    ex: Option[ScriptToken],
+    flags: Seq[ScriptFlag] = Policy.standardFlags
+  ) = {
+    val p = interpreter(ScriptProgram(ScriptProgram(TestUtil.noflagTestProgram, flags), stack, List(op)))
+    p.stack.headOption must be(ex)
+    p.script.isEmpty must be(true)
+  }
+
   def checkOpError(
     op: ScriptOperation,
-    interpreter: ScriptProgram => ScriptProgram)(
+    interpreter: ScriptProgram => ScriptProgram,
+    flags: Seq[ScriptFlag] = Policy.standardFlags)(
     stack: List[ScriptToken],
     ex: ScriptError) =
-    interpreter(ScriptProgram(TestUtil.testProgramExecutionInProgress, stack.reverse, List(op))) match {
+    interpreter(ScriptProgram(ScriptProgram(TestUtil.noflagTestProgram, flags), stack, List(op))) match {
       case e: ExecutedScriptProgram => e.error must be(Some(ex))
       case _ => assert(false)
     }

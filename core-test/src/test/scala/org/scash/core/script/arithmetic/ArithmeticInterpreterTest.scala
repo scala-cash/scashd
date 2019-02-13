@@ -556,8 +556,8 @@ class ArithmeticInterpreterTest extends FlatSpec with TestHelpers {
   it must "throw errors for OP_DIV" in inputDivMod.map {
     case (n1, n2, _, _) =>
       val f = checkOpError(OP_DIV, AI.opDiv) _
-      f(List(n1, ScriptNumber.zero), ScriptErrorDivByZero)
-      f(List(n2, ScriptNumber.zero), ScriptErrorDivByZero)
+      f(List(ScriptNumber.zero, n1), ScriptErrorDivByZero)
+      f(List(ScriptNumber.zero, n2), ScriptErrorDivByZero)
   }
 
   it must "evaluate OP_MOD successfully " in inputDivMod.map {
@@ -586,8 +586,8 @@ class ArithmeticInterpreterTest extends FlatSpec with TestHelpers {
   it must "throw errors for OP_MOD" in inputDivMod.map {
     case (n1, n2, _, _) =>
       val f = checkOpError(OP_MOD, AI.opMod) _
-      f(List(n1, ScriptNumber.zero), ScriptErrorModByZero)
-      f(List(n2, ScriptNumber.zero), ScriptErrorModByZero)
+      f(List(ScriptNumber.zero, n1), ScriptErrorModByZero)
+      f(List(ScriptNumber.zero, n2), ScriptErrorModByZero)
   }
 
   it must "fail to evaluate all OP codes if the script stack is empty" in {

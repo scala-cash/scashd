@@ -137,10 +137,10 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
       case (a, b) =>
         val f = checkOpError(OP_SPLIT, SI.opSplit) _
 
-        f(List(a, ScriptNumber(a.size + 1)), ScriptErrorInvalidSplitRange)
-        f(List(b, ScriptNumber(b.size + 1)), ScriptErrorInvalidSplitRange)
-        f(List(ScriptConstant(a.bytes ++ b.bytes), ScriptNumber(ScriptConstant(a.bytes ++ b.bytes).size + 1)), ScriptErrorInvalidSplitRange)
-        f(List(a, ScriptNumber(-1)), ScriptErrorInvalidSplitRange)
+        f(List(ScriptNumber(a.size + 1), a), ScriptErrorInvalidSplitRange)
+        f(List(ScriptNumber(b.size + 1), b), ScriptErrorInvalidSplitRange)
+        f(List(ScriptNumber(ScriptConstant(a.bytes ++ b.bytes).size + 1), ScriptConstant(a.bytes ++ b.bytes)), ScriptErrorInvalidSplitRange)
+        f(List(ScriptNumber(-1), a), ScriptErrorInvalidSplitRange)
 
     }
   }
@@ -264,10 +264,10 @@ class SpliceInterpreterTest extends FlatSpec with TestHelpers {
     //NUM2BIn require 2 elements on the stack
     f(List(ScriptNumber.zero), ScriptErrorInvalidStackOperation)
 
-    f(List(ScriptNumber(ByteVector.empty), ScriptNumber(ByteVector.fromValidHex("0x0902"))), ScriptErrorPushSize)
+    f(List(ScriptNumber(ByteVector.fromValidHex("0x0902")), ScriptNumber(ByteVector.empty)), ScriptErrorPushSize)
 
     //Impossible encoding
-    f(List(ScriptNumber(ByteVector.fromValidHex("0xabcdef80")), ScriptNumber(0x03)), ScriptErrorImpossibleEncoding)
+    f(List(ScriptNumber(0x03), ScriptNumber(ByteVector.fromValidHex("0xabcdef80"))), ScriptErrorImpossibleEncoding)
   }
 
   it must "BIN2NUM errors" in {

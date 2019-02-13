@@ -142,6 +142,15 @@ object TestUtil {
     PreExecutionScriptProgram(t)
   }
 
+  def noflagTestProgram: ScriptProgram = {
+    val t = TxSigComponent(
+      transaction = TransactionTestUtil.testTransaction,
+      inputIndex = UInt32.zero,
+      output = TransactionOutput(CurrencyUnits.zero, EmptyScriptPubKey),
+      flags = List.empty)
+    PreExecutionScriptProgram(t)
+  }
+
   def testProgramPreExecution = testProgram match {
     case p: PreExecutionScriptProgram => p
     case _ => throw new RuntimeException("this must be a script program that is pre execution")

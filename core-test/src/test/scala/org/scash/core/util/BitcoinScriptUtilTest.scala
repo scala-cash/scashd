@@ -54,10 +54,13 @@ class BitcoinScriptUtilTest extends FlatSpec with MustMatchers {
   it must "count n sigops when we have n occurrences OP_CHECKSIG or OP_CHECKSIGVERIFY in a script" in {
     BitcoinScriptUtil.countSigOps(Seq(OP_CHECKSIG)) must be(1)
     BitcoinScriptUtil.countSigOps(Seq(OP_CHECKSIGVERIFY)) must be(1)
+    BitcoinScriptUtil.countSigOps(Seq(OP_CHECKDATASIGVERIFY)) must be(1)
+    BitcoinScriptUtil.countSigOps(Seq(OP_CHECKDATASIG)) must be(1)
 
     BitcoinScriptUtil.countSigOps(Seq(OP_CHECKSIG, OP_CHECKSIG, OP_CHECKSIG, OP_CHECKSIG, OP_CHECKSIG)) must be(5)
-    BitcoinScriptUtil.countSigOps(Seq(OP_CHECKSIGVERIFY, OP_CHECKSIGVERIFY,
-      OP_CHECKSIGVERIFY, OP_CHECKSIGVERIFY, OP_CHECKSIGVERIFY)) must be(5)
+    BitcoinScriptUtil.countSigOps(Seq(OP_CHECKDATASIG, OP_CHECKDATASIG, OP_CHECKDATASIG, OP_CHECKDATASIG)) must be(4)
+    BitcoinScriptUtil.countSigOps(Seq(OP_CHECKDATASIGVERIFY, OP_CHECKDATASIGVERIFY, OP_CHECKDATASIGVERIFY)) must be(3)
+    BitcoinScriptUtil.countSigOps(Seq(OP_CHECKSIGVERIFY, OP_CHECKSIGVERIFY, OP_CHECKSIGVERIFY )) must be(3)
   }
 
   it must "count n sigops when have n possible signatures in a OP_CHECKMULTISIG or OP_CHECKMULTISIGVERIFY" in {
