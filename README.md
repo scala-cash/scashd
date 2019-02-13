@@ -8,10 +8,10 @@ this is a fork of bitcoin-s which is a library for bitcoin core. Work is still o
 - [X] format [Transaction](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/transaction.md)
 - [X] Enforce [UAHF rules](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/uahf-technical-spec.md)
 - [X] Enforce [Nov17 HF Rules](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/nov-13-hardfork-spec.md)
-- [ ] Support [cashaddr](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/cashaddr.md)
 - [X] Integrate [May18 HF OP_CODES](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/may-2018-hardfork.md)( CAT, SPLIT, AND, XOR, OR, DIV, MOD, BIN2NUM, NUM2BIN)
-- [ ] Integrate [OP_CHECKDATASIG](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/op_checkdatasig.md) (in progress)
-- [ ] Enforce [Nov18 HF Rules](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/2018-nov-upgrade.md)
+- [X] Integrate [OP_CHECKDATASIG](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/op_checkdatasig.md)
+- [ ] Enforce [Nov18 HF Rules](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/2018-nov-upgrade.md) (in progress)
+- [ ] Support [cashaddr](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/cashaddr.md)
 - [ ] Implement features in [May19 HF](https://github.com/bitcoincashorg/bitcoincash.org/pull/143)
 
 This is the core functionality of scash.
@@ -33,9 +33,9 @@ This repostitory includes the following functionality:
 # Design Principles
   - Immutable data structures everywhere
   - Functional Programming (FP) following these 3 properties (WIP):
-    1. Totality
-    2. Determinism
-    3. No Side Effects
+    - Totality
+    - Determinism
+    - No Side Effects
 
   - Algebraic Data Types to allow the compiler to check for exhaustiveness on match statements
   - Using [property based testing](http://www.scalatest.org/user_guide/property_based_testing) to test robustness of code 
