@@ -63,6 +63,8 @@ sealed abstract class CryptoGenerators {
     hash <- CryptoGenerators.doubleSha256Digest
   } yield privKey.sign(hash)
 
+  def sha256Digest: Gen[Sha256Digest] = StringGenerators.hexString.map(CryptoUtil.sha256)
+
   /** Generates a random [[DoubleSha256Digest]] */
   def doubleSha256Digest: Gen[DoubleSha256Digest] = for {
     key <- privateKey
