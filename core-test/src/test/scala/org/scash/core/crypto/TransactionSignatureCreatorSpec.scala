@@ -37,7 +37,8 @@ class TransactionSignatureCreatorSpec extends Properties("TransactionSignatureCr
         //run it through the interpreter
         val program = PreExecutionScriptProgram(txSignatureComponent)
         val result = ScriptInterpreter.run(program)
-        //can be ScriptErrorPushSize if the redeemScript is larger than 520 bytes
+        //can be ScriptErrorPushSize if the redeemScript is larger than 520 bytes or can have non
+        //push only elements in the ScriptSig
         Seq(ScriptOk, ScriptErrorPushSize).contains(result)
     }
 

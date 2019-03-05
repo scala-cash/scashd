@@ -115,16 +115,15 @@ trait BitcoinScriptUtil extends BitcoinSLogger {
 
   /**
    * Determines if a script contains only script operations
-   * This is equivalent to
-   * [[https://github.com/bitcoin/bitcoin/blob/master/src/script/script.cpp#L213]]
+   * This is equivalent to isPushOnly in ABC the implementation
    */
   def isPushOnly(script: Seq[ScriptToken]): Boolean = {
     @tailrec
     def loop(tokens: Seq[ScriptToken]): Boolean = tokens match {
       case h :: t => h match {
         case op: ScriptOperation =>
-          if (op.opCode < OP_16.opCode) loop(t)
-          else false
+          if (op.opCode > OP_16.opCode) false
+          else loop(t)
         case _ => loop(t)
       }
       case Nil => true

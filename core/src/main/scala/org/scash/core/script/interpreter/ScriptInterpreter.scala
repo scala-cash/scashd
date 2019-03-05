@@ -45,7 +45,7 @@ sealed abstract class ScriptInterpreter {
 
     val p2shEnabled = ScriptFlagUtil.p2shEnabled(flags)
     val executedProgram: ExecutedScriptProgram = if (ScriptFlagUtil.requirePushOnly(flags)
-      && !BitcoinScriptUtil.isPushOnly(program.script)) {
+      && !BitcoinScriptUtil.isPushOnly(scriptSig.asm)) {
       logger.error("We can only have push operations inside of the script sig when the SIGPUSHONLY flag is set")
       ScriptProgram(program, ScriptErrorSigPushOnly)
     } else if (scriptSig.isInstanceOf[P2SHScriptSignature] && p2shEnabled &&
@@ -76,13 +76,14 @@ sealed abstract class ScriptInterpreter {
       }
     }
     logger.trace("Executed Script Program: " + executedProgram)
-    if (executedProgram.error.isDefined) executedProgram.error.get
-    else if (executedProgram.stackTopIsTrue && flags.contains(ScriptVerifyCleanStack)) {
-      //require that the stack after execution has exactly one element on it
-      if (executedProgram.stack.size == 1) ScriptOk
-      else ScriptErrorCleanStack
-    } else if (executedProgram.stackTopIsTrue) ScriptOk
-    else ScriptErrorEvalFalse
+    executedProgram.error.getOrElse {
+      if (executedProgram.stackTopIsTrue && flags.contains(ScriptVerifyCleanStack)) {
+        //require that the stack after execution has exactly one element on it
+        if (executedProgram.stack.size == 1) ScriptOk
+        else ScriptErrorCleanStack
+      } else if (executedProgram.stackTopIsTrue) ScriptOk
+      else ScriptErrorEvalFalse
+    }
   }
 
   /**
@@ -124,7 +125,7 @@ sealed abstract class ScriptInterpreter {
         flags = p.flags,
         lastCodeSeparator = None)
 
-      if (ScriptFlagUtil.requirePushOnly(p2shRedeemScriptProgram.flags) && !BitcoinScriptUtil.isPushOnly(s.asm)) {
+      if (ScriptFlagUtil.requirePushOnly(p2shRedeemScriptProgram.flags) && !BitcoinScriptUtil.isPushOnly(p.txSignatureComponent.scriptSignature.asm)) {
         logger.error("p2sh redeem script must be push only operations whe SIGPUSHONLY flag is set")
         ScriptProgram(p2shRedeemScriptProgram, ScriptErrorSigPushOnly)
       } else loop(p2shRedeemScriptProgram, 0)
