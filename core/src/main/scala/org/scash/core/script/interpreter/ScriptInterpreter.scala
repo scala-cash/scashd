@@ -384,7 +384,7 @@ sealed abstract class ScriptInterpreter {
    */
   def checkTransaction(transaction: Transaction): Boolean = {
     val inputOutputsNotZero = !(transaction.inputs.isEmpty || transaction.outputs.isEmpty)
-    val txSize = Consensus.minTxSize < transaction.bytes.size && transaction.bytes.size < Consensus.maxTxSize
+    val txSize = Consensus.minTxSize <= transaction.bytes.size && transaction.bytes.size < Consensus.maxTxSize
     val outputsSpendValidAmountsOfMoney = !transaction.outputs.exists(o =>
       o.value < CurrencyUnits.zero || o.value > Consensus.maxMoney)
 
