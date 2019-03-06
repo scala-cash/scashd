@@ -1,6 +1,5 @@
 package org.scash.core.crypto
 
-import org.scalacheck.Prop
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, MustMatchers}
 import org.scash.core.gen.CryptoGenerators
