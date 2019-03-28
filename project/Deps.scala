@@ -15,6 +15,7 @@ object Deps {
     val scalazv = "7.2.26"
     val scodecbitsv = "1.1.9"
     val junitv = "0.11"
+    val ziov = "0.19"
   }
 
   object Compile {
@@ -26,6 +27,7 @@ object Deps {
     val akkaStream = "com.typesafe.akka" %% "akka-stream" % V.akkaStreamv
     val playJson = "com.typesafe.play" %% "play-json" % V.playv
     val scalaz = "org.scalaz" %% "scalaz-core" % V.scalazv withSources() withJavadoc()
+    val zio = "org.scalaz" %% "scalaz-zio" % V.ziov withSources() withJavadoc()
   }
 
   object Test {
