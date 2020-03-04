@@ -15,7 +15,7 @@ object Deps {
     val scalazv         = "7.2.30"
     val scodecbitsv     = "1.1.14"
     val junitv          = "0.11"
-    val zioV            = "1.0.0-RC17"
+    val zioV            = "1.0.0-RC18-1"
     val typesafeConfigV = "1.4.0"
     val nativeLoaderV   = "2.3.4"
     val scalaTestPlus   = "3.1.1.1"
