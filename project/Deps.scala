@@ -22,7 +22,7 @@ object Deps {
     val scalaTestPlus   = "3.1.1.1"
     val asyncNewScalaV  = "0.10.0"
     val akkaActorV      = akkaStreamv
-    val sttpV           = "2.0.0"
+    val sttpV           = "2.0.4"
   }
 
   object Compile {
