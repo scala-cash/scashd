@@ -9,12 +9,10 @@ import zio.ZIO
 import zio.test.Assertion.{ equalTo, isSubtype }
 import zio.test._
 
-object SerializerSpec
-    extends DefaultRunnableSpec(
-      suite("BitcoinRPC")(
-        testM("GetBlockchainInfo") {
-
-          val p = """{
+object SerializerSpec extends DefaultRunnableSpec {
+  val spec = suite("BitcoinRPC")(
+    testM("GetBlockchainInfo") {
+      val p = Json.parse("""{
             "chain": "main",
             "blocks": 568749,
             "headers": 568749,
@@ -49,16 +47,15 @@ object SerializerSpec
               }
             },
             "warnings": ""
-            }"""
-          assertM(
-            ZIO.succeed(Json.parse(p).validate[GetBlockChainInfoResult].asOpt),
-            isSubtype[Some[GetBlockChainInfoResult]](Assertion.anything)
-          )
-        },
-        testM("Softfork") {
+            }""")
 
-          val p = Json.parse(
-            """{
+      assertM(ZIO.succeed(p.validate[GetBlockChainInfoResult].asOpt))(
+        isSubtype[Some[GetBlockChainInfoResult]](Assertion.anything)
+      )
+    },
+    testM("Softfork") {
+      val p = Json.parse(
+        """{
               "type": "bip9",
               "bip9": {
                 "status": "defined",
@@ -67,26 +64,25 @@ object SerializerSpec
                 "since": 0
               },
               "active": false}"""
-          )
+      )
 
-          val r = Softfork("bip9", Bip9Softfork("defined", 1573819200, 1589544000, 0), false)
-          assertM(ZIO.succeed(p.validate[Softfork].get), equalTo(r))
-        },
-        testM("Bip9Softfork") {
-
-          val e = Json.parse(
-            """{ 
+      val r = Softfork("bip9", Bip9Softfork("defined", 1573819200, 1589544000, 0), false)
+      assertM(ZIO.succeed(p.validate[Softfork].get))(equalTo(r))
+    },
+    testM("Bip9Softfork") {
+      val e = Json.parse(
+        """{ 
                "status" : "defined", 
                "start_time" : 1573819200, 
                "timeout" : 1589544000, 
                "since" : 0 
                }"""
-          )
-
-          val j = Json.fromJson[Bip9Softfork](e)
-          val r = Bip9Softfork("defined", 1573819200, 1589544000, 0)
-
-          ZIO.succeed(assert(j.get, equalTo(r)))
-        }
       )
-    )
+
+      val j = Json.fromJson[Bip9Softfork](e)
+      val r = Bip9Softfork("defined", 1573819200, 1589544000, 0)
+
+      ZIO.succeed(assert(j.get)(equalTo(r)))
+    }
+  )
+}

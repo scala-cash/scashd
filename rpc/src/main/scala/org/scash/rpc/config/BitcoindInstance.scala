@@ -6,17 +6,11 @@ import java.nio.file.{ Files, Paths }
 
 import org.scash.core.config.NetworkParameters
 import org.scash.core.util.BitcoinSLogger
-import org.scash.rpc.client.common.{ BitcoindRpcClient, BitcoindVersion }
-
-import scala.sys.process._
-import org.scash.core.util.BitcoinSLogger
-import org.scash.core.config.NetworkParameters
-import org.scash.rpc.config.BitcoindAuthCredentials.{ CookieBased, PasswordBased }
-import org.scash.rpc.util.AsyncUtil
+import org.scash.rpc.client.common.BitcoindVersion
 import zio.{ UIO, ZIO }
 
-import scala.util.{ Failure, Properties, Success }
-import scala.concurrent.{ Future, Promise }
+import scala.sys.process._
+import scala.util.Properties
 
 /**
  * Created by chris on 4/29/17.

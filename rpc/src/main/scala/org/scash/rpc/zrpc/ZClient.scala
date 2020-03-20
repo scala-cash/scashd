@@ -2,33 +2,30 @@ package org.scash.rpc.zrpc
 
 import java.util.UUID
 
+import org.scash.rpc.BitcoindException
+import org.scash.rpc.zrpc.zrpc.ZClient
 import play.api.libs.json._
-
 import sttp.client.asynchttpclient.zio.AsyncHttpClientZioBackend
-import sttp.client.{ asStringAlways, basicRequest }
 import sttp.client.playJson._
+import sttp.client.{ asStringAlways, basicRequest }
 import sttp.model.Uri
-
-import zio.Task
-import zio.{ Managed, ZManaged }
+import zio.{ Managed, Task, ZLayer }
 
 import scala.util.{ Failure, Success, Try }
-
-import org.scash.rpc.BitcoindException
-
-trait ZClient {
-  val zclient: ZClient.Service
-}
 
 object ZClient {
   trait Service {
     def bitcoindCall[A: Reads](cmd: String, parameters: List[JsValue] = List.empty): Task[A]
   }
 
-  def make(uri: Uri, userName: String, password: String): ZManaged[Any, Throwable, ZClient] =
-    Managed.make(AsyncHttpClientZioBackend())(_.close().ignore).map { implicit sttp =>
-      new ZClient {
-        val zclient = new ZClient.Service {
+  def make(
+    uri: Uri,
+    userName: String,
+    password: String
+  ): ZLayer[Any, Throwable, ZClient] =
+    ZLayer.fromManaged(
+      Managed.make(AsyncHttpClientZioBackend())(_.close().ignore).map { implicit sttp =>
+        new ZClient.Service {
           def bitcoindCall[A: Reads](command: String, parameters: List[JsValue] = List.empty): Task[A] = {
             val payload = JsObject(
               Map(
@@ -52,7 +49,7 @@ object ZClient {
           }
         }
       }
-    }
+    )
 
   private val resultKey: String = "result"
   private val errorKey: String  = "error"

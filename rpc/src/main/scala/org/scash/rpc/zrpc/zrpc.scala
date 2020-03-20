@@ -1,3 +1,7 @@
 package org.scash.rpc.zrpc
 
-package object zrpc extends BlockchainRPC with NetworkRPC
+import zio.Has
+
+package object zrpc extends BlockchainRPC with NetworkRPC {
+  type ZClient = Has[ZClient.Service]
+}

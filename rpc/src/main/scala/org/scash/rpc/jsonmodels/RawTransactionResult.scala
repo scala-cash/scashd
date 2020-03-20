@@ -4,8 +4,8 @@ import org.scash.core.crypto.DoubleSha256DigestBE
 import org.scash.core.currency.Bitcoins
 import org.scash.core.number.UInt32
 import org.scash.core.protocol.script.{ ScriptPubKey, ScriptSignature }
-import org.scash.core.protocol.transaction.{ Transaction, TransactionInput }
-import org.scash.core.protocol.{ BitcoinAddress, P2PKHAddress, P2SHAddress }
+import org.scash.core.protocol.transaction.Transaction
+import org.scash.core.protocol.{ P2PKHAddress, P2SHAddress }
 import org.scash.core.script.ScriptType
 
 import scala.concurrent.duration.FiniteDuration

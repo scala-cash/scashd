@@ -1,6 +1,6 @@
 import scala.util.Properties
 import scala.collection.JavaConverters._
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration.DurationInt
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -13,6 +13,7 @@ dependsOn(Projects.core)
 
 CommonSettings.prodSettings
 
+/*
 TaskKeys.downloadBitcoind := {
   val logger = streams.value.log
   import scala.sys.process._
@@ -26,8 +27,7 @@ TaskKeys.downloadBitcoind := {
 
   val versions = List("0.21.0")
 
-  logger.debug(
-    s"(Maybe) downloading Bitcoin ABC binaries for versions: ${versions.mkString(",")}")
+  logger.debug(s"(Maybe) downloading Bitcoin ABC binaries for versions: ${versions.mkString(",")}")
 
   val (platFolder, platform, suffix) =
     if (Properties.isLinux) ("linux", "x86_64-linux-gnu", "tar.gz")
@@ -37,7 +37,7 @@ TaskKeys.downloadBitcoind := {
 
   implicit val ec = scala.concurrent.ExecutionContext.global
   val downloads = versions.map { version =>
-    val versionDir = binaryDir resolve version
+    val versionDir      = binaryDir resolve version
     val archiveLocation = binaryDir resolve s"$version.$suffix"
     val location =
       s"https://download.bitcoinabc.org/$version/$platFolder/bitcoin-abc-$version-$platform.$suffix"
@@ -50,13 +50,11 @@ TaskKeys.downloadBitcoind := {
           .asScala
           .map(_.toString)
           .exists(expectedEndLocation.toString.startsWith(_))) {
-      logger.debug(
-        s"Directory $expectedEndLocation already exists, skipping download of version $version")
+      logger.debug(s"Directory $expectedEndLocation already exists, skipping download of version $version")
       Future.unit
     } else {
       Future {
-        logger.info(
-          s"Downloading bitcoind version $version from location: $location")
+        logger.info(s"Downloading bitcoind version $version from location: $location")
         logger.info(s"Placing the file in $archiveLocation")
         val downloadCommand = url(location) #> archiveLocation.toFile
         downloadCommand.!!
@@ -77,3 +75,4 @@ TaskKeys.downloadBitcoind := {
   //timeout if we cannot download in 120 seconds
   Await.result(Future.sequence(downloads), 120.seconds)
 }
+ */

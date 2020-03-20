@@ -14,7 +14,8 @@ object Uint32B {
     l => Uint32B(NumericUtil.longToBigInt(l)),
     u => Successful(NumericUtil.bigIntToLong(u.num))
   )
-
+  /*
   implicit val uint32Numeric: CNumeric[Uint32B] =
     CNumeric[Uint32B](0xFFFFFFFFL)(_.num, Uint32B(_))
+ */
 }

@@ -16,13 +16,13 @@ object Deps {
     val scodecv         = "1.11.6"
     val scodecbitsv     = "1.1.14"
     val junitv          = "0.11"
-    val zioV            = "1.0.0-RC17"
+    val zioV            = "1.0.0-RC18-2"
     val typesafeConfigV = "1.4.0"
     val nativeLoaderV   = "2.3.4"
     val scalaTestPlus   = "3.1.1.1"
     val asyncNewScalaV  = "0.10.0"
     val akkaActorV      = akkaStreamv
-    val sttpV           = "2.0.0"
+    val sttpV           = "2.0.6"
   }
 
   object Compile {
@@ -105,8 +105,6 @@ object Deps {
     Test.akkaHttp,
     Test.akkaStream,
     Test.logback,
-    Test.scalaTest,
-    Test.scalacheck,
     Test.newAsync,
     Test.zioTest,
     Test.zioTestsbt
