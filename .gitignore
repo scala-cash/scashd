@@ -32,7 +32,6 @@ gen_context
 *.exe
 *.so
 *.a
-!.gitignore
 
 binaries/
 Makefile

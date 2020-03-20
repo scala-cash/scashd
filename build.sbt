@@ -6,21 +6,20 @@ lazy val rpc  = project in file("rpc")
 lazy val scash = project
   .in(file("."))
   .aggregate(
-    secp256k1jni,
     core,
     testkit,
     coreTest,
     rpc
     //rpcTest,
   )
+  .settings(
+    resolvers ++= Seq(
+      Resolver.bintrayRepo("scala-cash", "io"),
+      Resolver.sonatypeRepo("public")
+    )
+  )
   .settings(CommonSettings.settings: _*)
   .settings(crossScalaVersions := Nil)
-
-lazy val secp256k1jni = project
-  .in(file("secp256k1jni"))
-  .settings(CommonSettings.prodSettings: _*)
-  .settings(coverageEnabled := false)
-  .enablePlugins()
 
 lazy val testkit = project
   .in(file("testkit"))

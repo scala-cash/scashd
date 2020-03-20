@@ -4,12 +4,12 @@ language: scala
 env:
   matrix:
     - TEST_COMMAND="downloadBitcoind rpcTest/test rpc/coverageReport rpc/coverageAggregate rpc/coveralls"
-    - TEST_COMMAND="coreTest/test core/coverageReport core/coverageAggregate core/coveralls secp256k1jni/test"
+    - TEST_COMMAND="coreTest/test core/coverageReport core/coverageAggregate core/coveralls"
 
 os: linux
 jdk:
-  - oraclejdk8
-  - openjdk8
+  - oraclejdk10
+  - openjdk10
 
 scala:
   - 2.13.1
@@ -25,17 +25,6 @@ before_cache:
   # Tricks to avoid unnecessary cache updates
   - find $HOME/.sbt -name "*.lock" | xargs rm
   - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
-
-addons:
-  apt:
-    packages: libgmp-dev
-
-install:
-  - mkdir lib && cd secp256k1
-  - ./autogen.sh
-  - ./configure --enable-jni --enable-experimental --enable-module-ecdh
-  - sudo make install
-  - cd ../
 
 script:
   - sbt scalafmtCheck coverage $TEST_COMMAND

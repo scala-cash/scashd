@@ -48,7 +48,7 @@ trait CNumeric[A] {
 object CNumeric {
   def apply[A](implicit n: CNumeric[A]): CNumeric[A] = n
 
-  def apply[A](n: A => BigInt, app: BigInt => A, mask: BigInt): CNumeric[A] = new CNumeric[A] {
+  def apply[A](mask: BigInt)(n: A => BigInt, app: BigInt => A): CNumeric[A] = new CNumeric[A] {
     def andMask = mask
     def num     = n
     def apply   = app
